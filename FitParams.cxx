@@ -12,18 +12,20 @@ const double FitParams::EM_SCALE_TRACK_WTWATEROUT = 0.1340;
 
 
 FitParams::FitParams() {
-	sigwt_params = true;//false;//true;
-	xsec_params = false;//true;
-	flux_params = false;//true;//true;
-	det_params = true;//true;
+	sigwt_params = true;
+	xsec_params = true;
+	flux_params = true;
+	det_params = true;//false;//true;
 	samplecon_params = false;//true;//for now
+	det_params_nc1pi0 = true;
 
 	nParams = 0;
 	// to save time when searching 
-	nSigWtParams = 0;
-	nXsecParams = 0;
-	nFluxParams = 0;
-	nDetParams = 0;
+//	nSigWtParams = 0;
+//	nXsecParams = 0;
+//	nFluxParams = 0;
+//	nDetParams = 0;
+//	nSampleConParams = 0;
 
 	covariance = NULL;
 	covarianceI = NULL;
@@ -58,7 +60,7 @@ void FitParams::FillFitParams(){
 	if(xsec_params) FillFitParams(kXsec);
 	if(flux_params) FillFitParams(kFlux);
 	if(det_params) FillFitParams(kDet);
-//	if(samplecon_params) FillFitParams(kSampleCon);
+	if(samplecon_params) FillFitParams(kSampleCon);
 
 	if (covariance != NULL){
 		SetCovarianceI();
@@ -98,11 +100,11 @@ void FitParams::FillFitParams(Int_t param_type){
 		if(!inFile) std::cerr << "Cannot find detector params file in Inputs/" << std::endl;
 		inT = (TTree*)inFile->Get("detParams");
 	}
-//	else if (param_type == kSampleCon){
-//		inFile = new TFile("Inputs/sampleconparam_input.root", "open");
-//		if(!inFile) std::cerr << "Cannot find sample constraint params file in Inputs/" << std::endl;
-//		inT = (TTree*)inFile->Get("sampleConParams");
-//	}
+	else if (param_type == kSampleCon){
+		inFile = new TFile("Inputs/sampleconparam_input.root", "open");
+		if(!inFile) std::cerr << "Cannot find sample constraint params file in Inputs/" << std::endl;
+		inT = (TTree*)inFile->Get("sampleConParams");
+	}
 	else{
 		std::cerr << "Incorrect Parameter Type Specified!" << std::endl;
 		exit(0);
@@ -148,16 +150,18 @@ void FitParams::FillFitParams(Int_t param_type){
 	int marker = nParams;
 	nParams += nParamsT;
 
-	if (param_type == kSigWt)
-		nSigWtParams = nParamsT;
-	else if (param_type == kXsec) 
-		nXsecParams = nParamsT;
-	else if (param_type == kFlux)
-		nFluxParams = nParamsT;
-	else if (param_type == kDet)
-		nDetParams = nParamsT;
-	else
-		std::cout<<"some other type not defined"<<std::endl;
+//	if (param_type == kSigWt)
+//		nSigWtParams = nParamsT;
+//	else if (param_type == kXsec) 
+//		nXsecParams = nParamsT;
+//	else if (param_type == kFlux)
+//		nFluxParams = nParamsT;
+//	else if (param_type == kDet)
+//		nDetParams = nParamsT;
+//	else if(param_type==kSampleCon)
+//		nSampleConParams = nParamsT;
+//	else
+//		std::cout<<"some other type not defined"<<std::endl;
 
 	for(int i =0; i< nParamsT; i++){
 		ParamNames.push_back(ParamNamesT->at(i));
@@ -312,7 +316,7 @@ int FitParams::GetParamIndexFromExactName(std::string name) const {
        std::cout<<"Parameter, "<<name<<", NOT FOUND"<<std::endl;
        exit(0);
     }
-	return -1;//0;//THis is WRONG!!! BUT JUST TO CHECK BUR ERROR //-1;
+	return -1;
 //	int index = -1;
 //	for(int i=0; i<nParams; i++)//later when names form are regulated, then can use nSigWtParams etc to search just a range to save some time
 //	{

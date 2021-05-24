@@ -22,41 +22,74 @@ double SystematicUncertaintyCorr::ReweightEvent(MCEvent& reweightedevt, const MC
 	if(fitparam.sigwt_params)
 	{
 		weight*=CalcSignalEventWeight(nominalevt, param);
-		if(_debugweight&&weight!=1)
+		if(_debugweight&&weight<0)
 			std::cout<<nominalevt.EventID<<" weight after CalcSignalEventWeight = "<<weight<<std::endl;
 	}
 	
 	if(fitparam.det_params)
 	{
 		weight*=CalPIDSystWeight(nominalevt, param);
-		if(_debugweight&&weight!=1)
+		if(_debugweight&&weight<0)
 			std::cout<<nominalevt.EventID<<" weight after CalcPIDSystWeight = "<<weight<<std::endl;
 		weight*=CalcMassSystWeight(nominalevt, param);
-		if(_debugweight&&weight!=1)
+		if(_debugweight&&weight<0)
 			std::cout<<nominalevt.EventID<<" weight after CalcMassSystWeight = "<<weight<<std::endl;
 		weight*=CalOOFVPi0WeightSyst(nominalevt, param);
-		if(_debugweight&&weight!=1)
+		if(_debugweight&&weight<0)
 			std::cout<<nominalevt.EventID<<" weight after CalOOFVPi0WeightSyst = "<<weight<<std::endl;
 	}	
 
 	if(fitparam.xsec_params)
 	{
 		weight*=CalcXSecFSISystWeightFromT2KReweight(nominalevt, param);
-		if(_debugweight&&weight!=1)
+		if(_debugweight&&weight<0)
 			std::cout<<nominalevt.EventID<<" weight after CalcXSecFSISystWeightFromT2KReweight = "<<weight<<std::endl;
 		weight*=CalcXSecNormSystWeight(nominalevt, param);
-		if(_debugweight&&weight!=1)
+		if(_debugweight&&weight<0)
 			std::cout<<nominalevt.EventID<<" weight after CalcXSecNormSystWeight = "<<weight<<std::endl;
 	}
 	
 	if(fitparam.flux_params)
 	{
 		weight*=CalcFluxSystWeight(nominalevt, param);
-		if(_debugweight&&weight!=1)
+		if(_debugweight&&weight<0)
 			std::cout<<nominalevt.EventID<<" weight after CalcFluxSystWeight = "<<weight<<std::endl;
 	}
 	
 	return weight;
+}
+double SystematicUncertaintyCorr::ReweightNC1pi0CSEvent(MCEvent& reweightedevt, const MCEvent& nominalevt, const std::vector<double>& param) const
+{
+	double weight = 1.0;
+
+	if(fitparam.det_params_nc1pi0)
+	{
+		reweightedevt.invariantmass = CalInvariantMassWithSyst(nominalevt, param);
+		reweightedevt.twoshowerEDepfrac = CalTwoShowerChargeRatioWithSyst(nominalevt, param);
+	}
+	if(fitparam.det_params)
+	{
+		reweightedevt.ShowerEDepFraction = CalShowerEDepFractionWithSyst(nominalevt, param);
+	}
+	if(fitparam.xsec_params)
+	{
+		weight*=CalcXSecFSISystWeightFromT2KReweight(nominalevt, param);
+		if(_debugweight&&weight<0)
+			std::cout<<"NC1pi0 sidebands: "<<nominalevt.EventID<<" weight after CalcXSecFSISystWeightFromT2KReweight = "<<weight<<std::endl;
+		weight*=CalcXSecNormSystWeight(nominalevt, param);
+		if(_debugweight&&weight<0)
+			std::cout<<"NC1pi0 sidebands: "<<nominalevt.EventID<<" weight after CalcXSecNormSystWeight = "<<weight<<std::endl;
+	}
+	
+	if(fitparam.flux_params)
+	{
+		weight*=CalcFluxSystWeight(nominalevt, param);
+		if(_debugweight&&weight<0)
+			std::cout<<nominalevt.EventID<<" weight after CalcFluxSystWeight = "<<weight<<std::endl;
+	}
+
+	return weight;
+
 }
 
 double SystematicUncertaintyCorr::ReweightEvent(MCEvent& reweightedevt, const MCEvent& nominalevt, const std::vector<double>& param, int sampleid ) const//sampleid, whether ncbk or numubk 
@@ -65,9 +98,13 @@ double SystematicUncertaintyCorr::ReweightEvent(MCEvent& reweightedevt, const MC
 	double weight = 1.0;
 //	weight*=CalcMassSystWeight(nominalevt, param);
 //	weight*=CalOOFVPi0WeightSyst(nominalevt, param);
-	weight*=CalcXSecFSISystWeightFromT2KReweight(nominalevt, param);
-	weight*=CalcXSecNormSystWeight(nominalevt, param);
-	weight*=CalcFluxSystWeight(nominalevt, param);
+	if(fitparam.xsec_params)
+	{
+		weight*=CalcXSecFSISystWeightFromT2KReweight(nominalevt, param);
+		weight*=CalcXSecNormSystWeight(nominalevt, param);
+	}
+	if(fitparam.flux_params)
+		weight*=CalcFluxSystWeight(nominalevt, param);
 
 	return weight;
 }
@@ -81,6 +118,9 @@ double SystematicUncertaintyCorr::CalReconShowerEnergyWithSyst(const MCEvent& no
 		scale=nominalevt.WTCharges/(nominalevt.WTCharges+nominalevt.ECalCharges)*FitParams::EM_SCALE_SHOWER_WTWATERIN*param[wtparaindex]+nominalevt.ECalCharges/(nominalevt.WTCharges+nominalevt.ECalCharges)*FitParams::EM_SCALE_SHOWER_ECAL*param[ecalparaindex];
 	else
 		scale = nominalevt.WTCharges/(nominalevt.WTCharges+nominalevt.ECalCharges)*FitParams::EM_SCALE_SHOWER_WTWATEROUT*param[wtparaindex]+nominalevt.ECalCharges/(nominalevt.WTCharges+nominalevt.ECalCharges)*FitParams::EM_SCALE_SHOWER_ECAL*param[ecalparaindex];
+
+	if(_debugweight)
+		std::cout<<"In CalReconShowerEnergyWithSyst: "<<nominalevt.WTCharges<<" "<<nominalevt.ECalCharges<<" "<<param[wtparaindex]<<" "<<scale<<" "<<nominalevt.ReconShowerEnergy<<" "<<scale*nominalevt.EDeposit<<std::endl;
 	
 	return scale*nominalevt.EDeposit;
 }
@@ -92,7 +132,7 @@ double SystematicUncertaintyCorr::CalShowerMedianWidthWithSyst(const MCEvent& no
 	if(std::abs(nominalevt.MostProbableTrueParticlePDG)==11||nominalevt.MostProbableTrueParticlePDG==22)
 		paramname += "kDet_EMShowerMedianWidthScale";
 //		showertype = 1;
-	else// if(std::abs(nominalevt.MostProbableTrueParticlePDG)==2212||std::abs(nominalevt.MostProbableTrueParticlePDG)==211)	
+	else //if(std::abs(nominalevt.MostProbableTrueParticlePDG)==2212||std::abs(nominalevt.MostProbableTrueParticlePDG)==211)	
 		paramname += "kDet_HadronShowerMedianWidthScale";
 //		showertype = 2;
 	if(nominalevt.isWaterConfig<0||nominalevt.numode<0){
@@ -103,7 +143,7 @@ double SystematicUncertaintyCorr::CalShowerMedianWidthWithSyst(const MCEvent& no
 	if(_debugweight&&paramname=="")
 	{
 		std::cout<<"Shower is caused by neither EM or Hadron!!!"<<" MostProbableTrueParticlePDG = "<<nominalevt.MostProbableTrueParticlePDG<<std::endl;
-		return 1.0;
+		return nominalevt.ShowerMedianWidth;//1;//-->return 1 is not right as it should return SMW value not weight on it
 	}
 	paramname+= (nominalevt.isWaterConfig ? "WaterIn":"WaterOut");
 	paramname+= (nominalevt.numode ? "FHC":"RHC");
@@ -145,7 +185,7 @@ double SystematicUncertaintyCorr::CalcMassSystWeight(const MCEvent& nominalevt, 
 	}
 	int paramindex =  fitparam.GetParamIndexFromExactName(paramname);
 	weight*=param[paramindex];
-	if(_debugweight&&weight!=1)
+	if(_debugweight&&weight<0)
 		std::cout<<"Event"<<nominalevt.EventID<<" "<<paramname<<" weight = "<< weight<<std::endl;
 	
 	return weight;
@@ -159,7 +199,7 @@ double SystematicUncertaintyCorr::CalPIDSystWeight(const MCEvent& nominalevt, co
 	paramname+= (nominalevt.numode ? "FHC":"RHC");
 	int paramindex =  fitparam.GetParamIndexFromExactName(paramname);
 	weight*=param[paramindex];
-	if(_debugweight&&weight!=1)
+	if(_debugweight&&weight<0)
 		std::cout<<"Event"<<nominalevt.EventID<<" "<<paramname<<" weight = "<< weight<<std::endl;
 	
 	return weight;
@@ -173,7 +213,7 @@ double SystematicUncertaintyCorr::CalOOFVPi0WeightSyst(const MCEvent& nominalevt
 	else if(std::abs(nominalevt.reactionCode)>30&&nominalevt.NPrimaryPi0s>0)//ncpi0 oofv
 	{
 		double weight = param[fitparam.GetParamIndexFromExactName("kDet_OOFVPi0Events")];
-		if(_debugweight&&weight!=1)
+		if(_debugweight&&weight<0)
 			std::cout<<"Event"<<nominalevt.EventID<<" "<<"kDet_OOFVPi0Events"<<" weight = "<< weight<<std::endl;
 		return param[fitparam.GetParamIndexFromExactName("kDet_OOFVPi0Events")];
 	}
@@ -183,8 +223,8 @@ double SystematicUncertaintyCorr::CalOOFVPi0WeightSyst(const MCEvent& nominalevt
 
 double SystematicUncertaintyCorr::CalcXSecFSISystWeightFromT2KReweight(const MCEvent& nominalevt, const std::vector<double>& param) const{
 	
-	if(nominalevt.isSignal==1)//skip signal
-		return 1.0;
+//	if(nominalevt.isSignal==1)//skip signal 
+//		return 1.0;
 
 	double weight = 1.0;
 	int paramindex = -1;
@@ -196,7 +236,7 @@ double SystematicUncertaintyCorr::CalcXSecFSISystWeightFromT2KReweight(const MCE
 	}
 	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_MaCCQE->GetName());
 	weight*= nominalevt.spline_MaCCQE->Eval(param[paramindex]);
-	if(_debugweight&&nominalevt.spline_MaCCQE->Eval(param[paramindex])!=1)
+	if(_debugweight&&nominalevt.spline_MaCCQE->Eval(param[paramindex])<0)
 		std::cout<<"Event"<<nominalevt.EventID<<" "<<"CCQE"<<" weight = "<< weight<<std::endl;
 
 	if(!nominalevt.spline_MaRES)
@@ -206,7 +246,7 @@ double SystematicUncertaintyCorr::CalcXSecFSISystWeightFromT2KReweight(const MCE
 	}
 	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_MaRES->GetName());
 	weight*= nominalevt.spline_MaRES->Eval(param[paramindex]);
-	if(_debugweight&&nominalevt.spline_MaRES->Eval(param[paramindex])!=1)
+	if(_debugweight&&nominalevt.spline_MaRES->Eval(param[paramindex])<0)
 		std::cout<<"Event"<<nominalevt.EventID<<" "<<"MaRES"<<" weight = "<<nominalevt.spline_MaRES->Eval(param[paramindex])<<std::endl;
 /*
  *comment for now 04/03 because graph of CA5 looks a bit strange
@@ -217,7 +257,7 @@ double SystematicUncertaintyCorr::CalcXSecFSISystWeightFromT2KReweight(const MCE
 	}
 	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_CA5->GetName());
 	weight*= nominalevt.spline_CA5->Eval(param[paramindex]);
-	if(_debugweight&&nominalevt.spline_CA5->Eval(param[paramindex])!=1)
+	if(_debugweight&&nominalevt.spline_CA5->Eval(param[paramindex])<0)
 		std::cout<<"Event"<<nominalevt.EventID<<" "<<"CA5"<<" weight = "<< nominalevt.spline_CA5->Eval(param[paramindex])<<" "<<param[paramindex]<<std::endl;
 */
 	if(!nominalevt.spline_ISO_BKG)                 
@@ -227,7 +267,7 @@ double SystematicUncertaintyCorr::CalcXSecFSISystWeightFromT2KReweight(const MCE
 	}
 	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_ISO_BKG->GetName());
 	weight*= nominalevt.spline_ISO_BKG->Eval(param[paramindex]);
-	if(_debugweight&&nominalevt.spline_ISO_BKG->Eval(param[paramindex])!=1)
+	if(_debugweight&&nominalevt.spline_ISO_BKG->Eval(param[paramindex])<0)
 		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_ISO_BKG-"<<" weight = "<< weight<<std::endl;
 
 	if(!nominalevt.spline_FSI_PI_ABS)              
@@ -237,7 +277,7 @@ double SystematicUncertaintyCorr::CalcXSecFSISystWeightFromT2KReweight(const MCE
 	}
 	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_FSI_PI_ABS->GetName());
 	weight*= nominalevt.spline_FSI_PI_ABS->Eval(param[paramindex]);
-	if(_debugweight&&nominalevt.spline_FSI_PI_ABS->Eval(param[paramindex])!=1)
+	if(_debugweight&&nominalevt.spline_FSI_PI_ABS->Eval(param[paramindex])<0)
 		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_FSI_PI_ABS"<<" weight = "<< weight<<std::endl;
 
 	if(!nominalevt.spline_FSI_CEX_LO)              
@@ -247,7 +287,7 @@ double SystematicUncertaintyCorr::CalcXSecFSISystWeightFromT2KReweight(const MCE
 	}
 	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_FSI_CEX_LO->GetName());
 	weight*= nominalevt.spline_FSI_CEX_LO->Eval(param[paramindex]);
-	if(_debugweight&&nominalevt.spline_FSI_CEX_LO->Eval(param[paramindex])!=1)
+	if(_debugweight&&nominalevt.spline_FSI_CEX_LO->Eval(param[paramindex])<0)
 		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_FSI_CEX_LO"<<" weight = "<< weight<<std::endl;
 
 	if(!nominalevt.spline_FSI_INEL_LO)             
@@ -257,7 +297,7 @@ double SystematicUncertaintyCorr::CalcXSecFSISystWeightFromT2KReweight(const MCE
 	}
 	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_FSI_INEL_LO->GetName());
 	weight*= nominalevt.spline_FSI_INEL_LO->Eval(param[paramindex]);
-	if(_debugweight&&nominalevt.spline_FSI_INEL_LO->Eval(param[paramindex])!=1)
+	if(_debugweight&&nominalevt.spline_FSI_INEL_LO->Eval(param[paramindex])<0)
 		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_FSI_INEL_LO"<<" weight = "<< weight<<std::endl;
 //	if(!nominalevt.spline_FSI_CEX_HI)              
 //	{
@@ -273,7 +313,7 @@ double SystematicUncertaintyCorr::CalcXSecFSISystWeightFromT2KReweight(const MCE
 	}
 	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_FSI_INEL_HI->GetName());
 	weight*= nominalevt.spline_FSI_INEL_HI->Eval(param[paramindex]);
-	if(_debugweight&&nominalevt.spline_FSI_INEL_HI->Eval(param[paramindex])!=1)
+	if(_debugweight&&nominalevt.spline_FSI_INEL_HI->Eval(param[paramindex])<0)
 		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_FSI_INEL_HI"<<" weight = "<< weight<<std::endl;
 
 	if(!nominalevt.spline_FSI_PI_PROD)              
@@ -283,17 +323,17 @@ double SystematicUncertaintyCorr::CalcXSecFSISystWeightFromT2KReweight(const MCE
 	}
 	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_FSI_PI_PROD->GetName());
 	weight*= nominalevt.spline_FSI_PI_PROD->Eval(param[paramindex]);
-	if(_debugweight && nominalevt.spline_FSI_PI_PROD->Eval(param[paramindex])!=1)
+	if(_debugweight && nominalevt.spline_FSI_PI_PROD->Eval(param[paramindex])<0)
 	{
-		if(nominalevt.EventID==1804522)
-		{
-			TCanvas* c1 = new TCanvas("c1", "c1");
-			c1->cd();
-			nominalevt.spline_FSI_PI_PROD->Draw();
-			std::string name = std::to_string(nominalevt.EventID)+nominalevt.spline_FSI_PI_PROD->GetName()+".pdf";
-			c1->SaveAs(name.c_str());
+//		if(nominalevt.EventID==1804522)
+//		{
+//			TCanvas* c1 = new TCanvas("c1", "c1");
+//			c1->cd();
+//			nominalevt.spline_FSI_PI_PROD->Draw();
+//			std::string name = std::to_string(nominalevt.EventID)+nominalevt.spline_FSI_PI_PROD->GetName()+".pdf";
+//			c1->SaveAs(name.c_str());
 			std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_FSI_PI_PROD"<<" weight = "<< weight<<" "<<param[paramindex]<<std::endl;
-		}
+//		}
 	}
 
 	if(!nominalevt.spline_NIWG_DIS_BY)             
@@ -303,7 +343,7 @@ double SystematicUncertaintyCorr::CalcXSecFSISystWeightFromT2KReweight(const MCE
 	}
 	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_NIWG_DIS_BY->GetName());
 	weight*= nominalevt.spline_NIWG_DIS_BY->Eval(param[paramindex]);
-	if(_debugweight&&nominalevt.spline_NIWG_DIS_BY->Eval(param[paramindex])!=1)
+	if(_debugweight&&nominalevt.spline_NIWG_DIS_BY->Eval(param[paramindex])<0)
 		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_NIWG_DIS_BY-"<<" weight = "<< weight<<std::endl;
 
 	if(!nominalevt.spline_NIWG_MultiPi_BY)         
@@ -313,7 +353,7 @@ double SystematicUncertaintyCorr::CalcXSecFSISystWeightFromT2KReweight(const MCE
 	}
 	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_NIWG_MultiPi_BY->GetName());
 	weight*= nominalevt.spline_NIWG_MultiPi_BY->Eval(param[paramindex]);
-	if(_debugweight&&nominalevt.spline_NIWG_MultiPi_BY->Eval(param[paramindex])!=1)
+	if(_debugweight&&nominalevt.spline_NIWG_MultiPi_BY->Eval(param[paramindex])<0)
 		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_NIWG_MultiPi_BY"<<" weight = "<< weight<<std::endl;
 
 	if(!nominalevt.spline_NIWG_MultiPi_Xsec_AGKY)  
@@ -323,7 +363,7 @@ double SystematicUncertaintyCorr::CalcXSecFSISystWeightFromT2KReweight(const MCE
 	}
 	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_NIWG_MultiPi_Xsec_AGKY->GetName());
 	weight*= nominalevt.spline_NIWG_MultiPi_Xsec_AGKY->Eval(param[paramindex]);
-	if(_debugweight&&nominalevt.spline_NIWG_MultiPi_Xsec_AGKY->Eval(param[paramindex])!=1)
+	if(_debugweight&&nominalevt.spline_NIWG_MultiPi_Xsec_AGKY->Eval(param[paramindex])<0)
 		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_NIWG_MultiPi_Xsec_AGKY"<<" weight = "<< weight<<std::endl;
 //	if(!nominalevt.spline_NIWG2012a_nc1piE0)       
 //	{
@@ -339,7 +379,7 @@ double SystematicUncertaintyCorr::CalcXSecFSISystWeightFromT2KReweight(const MCE
 	}
 	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_NIWG2012a_nccohE0->GetName());
 	weight*= nominalevt.spline_NIWG2012a_nccohE0->Eval(param[paramindex]);
-	if(_debugweight&&nominalevt.spline_NIWG2012a_nccohE0->Eval(param[paramindex])!=1)
+	if(_debugweight&&nominalevt.spline_NIWG2012a_nccohE0->Eval(param[paramindex])<0)
 		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_NIWG2012a_nccohE0"<<" weight = "<< weight<<std::endl;
 
 	if(!nominalevt.spline_NIWG2012a_ncotherE0)     
@@ -349,7 +389,7 @@ double SystematicUncertaintyCorr::CalcXSecFSISystWeightFromT2KReweight(const MCE
 	}
 	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_NIWG2012a_ncotherE0->GetName());
 	weight*= nominalevt.spline_NIWG2012a_ncotherE0->Eval(param[paramindex]);
-	if(_debugweight&&nominalevt.spline_NIWG2012a_ncotherE0->Eval(param[paramindex])!=1)
+	if(_debugweight&&nominalevt.spline_NIWG2012a_ncotherE0->Eval(param[paramindex])<0)
 		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_NIWG2012a_ncotherE0"<<" weight = "<< weight<<std::endl;
 	if(!nominalevt.spline_NIWG2012a_nc1pi0E0)      
 	{
@@ -358,7 +398,7 @@ double SystematicUncertaintyCorr::CalcXSecFSISystWeightFromT2KReweight(const MCE
 	}
 	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_NIWG2012a_nc1pi0E0->GetName());
 	weight*= nominalevt.spline_NIWG2012a_nc1pi0E0->Eval(param[paramindex]);
-	if(_debugweight&&nominalevt.spline_NIWG2012a_nc1pi0E0->Eval(param[paramindex])!=1)
+	if(_debugweight&&nominalevt.spline_NIWG2012a_nc1pi0E0->Eval(param[paramindex])<0)
 		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_NIWG2012a_nc1pi0E0"<<" weight = "<< weight<<std::endl;
 
 
@@ -406,9 +446,11 @@ double SystematicUncertaintyCorr::CalcFluxSystWeight(const MCEvent& nominalevt, 
 	}
 	//gcc4.8 doesn't have std::to_string. to make sure this program can be compile in both gcc4.8 and gcc6, use stringstream below
 	std::stringstream sstmp;
-	sstmp << fitparam.GetNeutrinoEnergyBinIndex(nominalevt.numode, nominalevt.NeutrinoPDG, nominalevt.TrueNeutrinoEnergy);
+	int bin = fitparam.GetNeutrinoEnergyBinIndex(nominalevt.numode, nominalevt.NeutrinoPDG, nominalevt.TrueNeutrinoEnergy/1000.0); //convert to the unit of GeV
+	sstmp << bin;
 	paramname+=("bin"+sstmp.str());
 
+//	std::cout<<"In Flux: Event"<<nominalevt.EventID<<" "<<bin<<" TrueNeutrinoEnergy = "<<nominalevt.TrueNeutrinoEnergy<<std::endl;
 	int idx = fitparam.GetParamIndexFromExactName(paramname);
 	if(idx==-1) //overflow or underflow, so doesn;t count for now...
 	{
@@ -416,7 +458,7 @@ double SystematicUncertaintyCorr::CalcFluxSystWeight(const MCEvent& nominalevt, 
 		return 0;
 	}
 	weight*=param[idx];
-	if(_debugweight&&weight!=1)
+	if(_debugweight&&weight<0)
 		std::cout<<"Event"<<nominalevt.EventID<<" "<<paramname<<" weight = "<< weight<<std::endl;
 	return weight;
 }
@@ -445,10 +487,70 @@ double SystematicUncertaintyCorr::CalcSignalEventWeight(const MCEvent& nominalev
 //	paramname += ((nominalevt.isWaterConfig==1) ? "_waterin":"_waterout" );
 //	paramname += ((nominalevt.numode==1) ? "_FHC":"_RHC");
 	weight*=param[fitparam.GetParamIndexFromExactName(paramname)];	
-	if(_debugweight&&weight!=1)
+	if(_debugweight&&weight<0)
 		std::cout<<"Event"<<nominalevt.EventID<<" "<<paramname<<" weight = "<< weight<<std::endl;
 	return weight;
 }
 
+double SystematicUncertaintyCorr::CalInvariantMassWithSyst(const MCEvent& nominalevt, const std::vector<double>& param) const
+{
+	int ecalslopeparaindex = fitparam.GetParamIndexFromExactName("kDet_PhotonEnergyScaleECal_SLOPE");
+	int ecalintparaindex = fitparam.GetParamIndexFromExactName("kDet_PhotonEnergyScaleECal_INT");
+	std::string wtslopeparaname = "";
+	std::string wtintparaname = "";
+	if(nominalevt.isWaterConfig==1)
+	{
+		wtslopeparaname =  "kDet_PhotonEnergyScaleWTWaterIn_SLOPE";
+		wtintparaname = "kDet_PhotonEnergyScaleWTWaterIn_INT";
+	}
+	else if(nominalevt.isWaterConfig==0 )
+	{
+		wtslopeparaname = "kDet_PhotonEnergyScaleWTWaterOut_SLOPE";
+		wtintparaname = "kDet_PhotonEnergyScaleWTWaterOut_INT";
+	}
+	else
+		throw std::runtime_error("Event in neither water-in nor water-out configuration");
+	int wtslopeparaindex = fitparam.GetParamIndexFromExactName(wtslopeparaname);
+	int wtintparaindex = fitparam.GetParamIndexFromExactName(wtintparaname);
+
+	double newMom1 = pi0ShowerUtils::CalPi0UtilsMom_withWeightedScale(nominalevt.maxEDepShower_ScaledMom, nominalevt.maxEDepShower_EDep, nominalevt.isWaterConfig, param[wtslopeparaindex], param[wtintparaindex], param[ecalslopeparaindex], param[ecalintparaindex]);
+
+	double newMom2 = pi0ShowerUtils::CalPi0UtilsMom_withWeightedScale(nominalevt.second_maxEDepShower_ScaledMom, nominalevt.second_maxEDepShower_EDep, nominalevt.isWaterConfig, param[wtslopeparaindex], param[wtintparaindex], param[ecalslopeparaindex], param[ecalintparaindex]);
+
+	double newinvariantmass = pi0ShowerUtils::CalInvariantMass(newMom1, nominalevt.maxEDepShower_Dir, newMom2, nominalevt.second_maxEDepShower_Dir);
+
+	if(_debugweight)
+		std::cout<<"In CalInvariantMassWithSyst: nominal_invariantmass"<<nominalevt.invariantmass<<" reweighted_invariantmass"<<newinvariantmass<<std::endl;
+	
+	return newinvariantmass;
+
+
+}
+
+double SystematicUncertaintyCorr::CalTwoShowerChargeRatioWithSyst(const MCEvent& nominalevt, const std::vector<double>& param) const
+{
+	int index = -1;
+	if(nominalevt.isWaterConfig==1)
+	{
+		if(std::abs(nominalevt.reactionCode)>30&&nominalevt.NtruePi0==1)
+			index = fitparam.GetParamIndexFromExactName("kDet_ChargeRatioScaleNC1pi0WaterIn");
+		else
+			index = fitparam.GetParamIndexFromExactName("kDet_ChargeRatioScaleOthWaterIn");
+	}
+	else if(nominalevt.isWaterConfig==0)
+	{
+		if(std::abs(nominalevt.reactionCode)>30&&nominalevt.NtruePi0==1)
+			index = fitparam.GetParamIndexFromExactName("kDet_ChargeRatioScaleNC1pi0WaterOut");
+		else
+			index = fitparam.GetParamIndexFromExactName("kDet_ChargeRatioScaleOthWaterOut");
+	}
+	else
+		throw std::runtime_error("Event in neither water-in nor water-out configuration");
+
+	if(index>=0) //should alway be true. otherwise, fitparam.GetParamIndexFromExactName will report error first and throw 
+		return nominalevt.twoshowerEDepfrac*(1.0-param[index]);
+	else 
+		return nominalevt.twoshowerEDepfrac;
+}
 
 

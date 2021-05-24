@@ -7,9 +7,9 @@
 #include "Utils/electronpiplus_4features_v2_class.h"
 
 void DataSets::FillHistograms(){
+	FillNumuCCBKCSHistograms();
 	FillSignalHistograms();
 	FillNCBKCSHistograms();
-	FillNumuCCBKCSHistograms();
 }
 
 void DataSets::InitSigHistograms()
@@ -85,9 +85,9 @@ void DataSets::FillSignalHistograms(){
 void DataSets::InitNCBKCSHistograms()
 {
 //	std::shared_ptr<TH1D> templatehist = std::make_shared<TH1D>(GetTemplateHistogram());
-    TH1D* templatehist = GetTemplateHistogram();
+    TH1D* templatehist = GetNCBKCSTemplateHistogram();
 
-	std::string histoname = "NCResonantPi0Sideband_ReconShowerVisibleEnergy";
+	std::string histoname = "NCResonantPi0Sideband_ReconInvariantMass";
 	histoname += (_isWaterConfig ? "_waterin":"_waterout");
 	histoname += (_numode ? "_FHC":"_RHC");
 	NCResonantPi0Sideband_ReconShowerVisibleEnergy = (TH1D*) templatehist->Clone(histoname.c_str());
@@ -129,10 +129,12 @@ void DataSets::FillNCBKCSHistograms(){
 //	int numode;
 	int accum_level;
 	int HSMTrackLayers;
+	int HSMShowerLayers;
 	double ShowerMedianWidth;
 	float ShowerEDepFraction;
 	double ReconShowerEnergy;
 	double AllParTotEDepInEvent;
+	double pi0Utils_HSMShowerMom;
 //	int cut0, cut1, cut2, cut3, cut4, cut5, cut6, cut7, cut8, cut9, cut10, cut11; // add more later
 	//reco pars
 	int iIncrementPar;
@@ -147,10 +149,12 @@ void DataSets::FillNCBKCSHistograms(){
 //	_defaultTree->SetBranchAddress("numode", &numode);
 	_defaultTree->SetBranchAddress("accum_level", &accum_level);
 	_defaultTree->SetBranchAddress("HSMTrackLayers", &HSMTrackLayers);
+	_defaultTree->SetBranchAddress("HSMShowerLayers", &HSMShowerLayers);
 	_defaultTree->SetBranchAddress("ReconShowerEnergy", &ReconShowerEnergy);
 	_defaultTree->SetBranchAddress("ShowerMedianWidth", &ShowerMedianWidth);
 	_defaultTree->SetBranchAddress("ShowerEDepFraction", &ShowerEDepFraction);
 	_defaultTree->SetBranchAddress("AllParTotEDepInEvent", &AllParTotEDepInEvent);
+	_defaultTree->SetBranchAddress("pi0Utils_HSMShowerMom", &pi0Utils_HSMShowerMom);
 //	_defaultTree->SetBranchAddress("cut0", &cut0);
 	_defaultTree->SetBranchAddress("iIncrementPar", &iIncrementPar);
 	_defaultTree->SetBranchAddress("particleDim", &particleDim);
@@ -163,7 +167,8 @@ void DataSets::FillNCBKCSHistograms(){
 	for(long int ievt=0; ievt<NEntries; ievt++)
 	{
 		_defaultTree->GetEntry(ievt);
-		if(accum_level>6&&ShowerEDepFraction<0.9)//add cuts for selecting ncpi0 cs 
+		if(accum_level>7&&HSMShowerLayers>13&&ShowerEDepFraction<0.9)//add cuts for selecting ncpi0 cs  //containId and muon decay cut should be included in accum_level>6, check when use
+			//in NC.exe, muon decay is cut 6 and vertexZ cut is cut7, to change from accum_levle>6 to >7 to add the cut on vertex z. and also, in one of cuts before cut6, HSMShowerLayers>10 and Containmen cut is applied, bt change >10 to >13. 
 		{
 			std::pair<int, int> maxtwo = pi0ShowerUtils::FindMaxTwoShower(particleDim, parScaledMom, parMom, parEDep, 0, iIncrementPar-1);
 			int maxEDepShowerIndex = maxtwo.first;
@@ -179,13 +184,28 @@ void DataSets::FillNCBKCSHistograms(){
 			*/
 			if(maxEDepShowerIndex>=0&&secondmaxEDepShowerIndex>=0&&(parEDep[maxEDepShowerIndex]+parEDep[secondmaxEDepShowerIndex])/AllParTotEDepInEvent>0.85)
 			{
+				if(std::abs(parScaledMom[maxEDepShowerIndex]-ReconShowerEnergy)>0.001) //sanity check
+				{
+					std::cout<<"Warning!!! parScaledMom[maxtwo.first] = "<<parScaledMom[maxEDepShowerIndex]<<" != ReconShowerEnergy = "<<ReconShowerEnergy<<std::endl;
+				}
+
 				double Max_Dir[3] = { parDirection[ maxEDepShowerIndex][0],  parDirection[ maxEDepShowerIndex][1],  parDirection[ maxEDepShowerIndex][2]};
 				double SecondMax_Dir[3] = { parDirection[ secondmaxEDepShowerIndex][0],  parDirection[ secondmaxEDepShowerIndex][1],  parDirection[ secondmaxEDepShowerIndex][2]};
-				double invarinatmass = pi0ShowerUtils::CalInvariantMass( parScaledMom[ maxEDepShowerIndex], Max_Dir,  parScaledMom[ secondmaxEDepShowerIndex],SecondMax_Dir); // use nueutil mom
-//					double cospi0thetaz = (Max_pi0Mom*Max_Dir[2]+SecondMax_pi0Mom*SecondMax_Dir[2])/TMath::Sqrt(TMath::Power(Max_pi0Mom*Max_Dir[0]+SecondMax_pi0Mom*SecondMax_Dir[0], 2)+TMath::Power(Max_pi0Mom*Max_Dir[1]+SecondMax_pi0Mom*SecondMax_Dir[1], 2)+TMath::Power(Max_pi0Mom*Max_Dir[2]+SecondMax_pi0Mom*SecondMax_Dir[2], 2));
-				double cospi0thetaz = (parScaledMom[maxEDepShowerIndex]*Max_Dir[2]+ parScaledMom[secondmaxEDepShowerIndex]*SecondMax_Dir[2])/TMath::Sqrt(TMath::Power( parScaledMom[ maxEDepShowerIndex]*Max_Dir[0]+ parScaledMom[ secondmaxEDepShowerIndex]*SecondMax_Dir[0], 2)+TMath::Power( parScaledMom[ maxEDepShowerIndex]*Max_Dir[1]+ parScaledMom[ secondmaxEDepShowerIndex]*SecondMax_Dir[1], 2)+TMath::Power( parScaledMom[ maxEDepShowerIndex]*Max_Dir[2]+ parScaledMom[ secondmaxEDepShowerIndex]*SecondMax_Dir[2], 2));
-				if(TMath::ACos(cospi0thetaz)<1.04&&invarinatmass>60&&invarinatmass<200)
-					NCResonantPi0Sideband_ReconShowerVisibleEnergy->Fill(ReconShowerEnergy);
+				//use nueutil mom
+//				double invariantmass = pi0ShowerUtils::CalInvariantMass( parScaledMom[ maxEDepShowerIndex], Max_Dir,  parScaledMom[ secondmaxEDepShowerIndex],SecondMax_Dir); // use nueutil mom
+//				double cospi0thetaz = (parScaledMom[maxEDepShowerIndex]*Max_Dir[2]+ parScaledMom[secondmaxEDepShowerIndex]*SecondMax_Dir[2])/TMath::Sqrt(TMath::Power( parScaledMom[ maxEDepShowerIndex]*Max_Dir[0]+ parScaledMom[ secondmaxEDepShowerIndex]*SecondMax_Dir[0], 2)+TMath::Power( parScaledMom[ maxEDepShowerIndex]*Max_Dir[1]+ parScaledMom[ secondmaxEDepShowerIndex]*SecondMax_Dir[1], 2)+TMath::Power( parScaledMom[ maxEDepShowerIndex]*Max_Dir[2]+ parScaledMom[ secondmaxEDepShowerIndex]*SecondMax_Dir[2], 2));
+
+				//use pi0 util mom
+				double Max_pi0Mom = pi0ShowerUtils::CalPi0UtilsMom(parScaledMom[maxtwo.first], parEDep[maxtwo.first], isWaterConfig);
+				if(std::abs(Max_pi0Mom-pi0Utils_HSMShowerMom)>=0.00001) //sanity check
+					std::cout<<"Warning!!! std::abs(Max_pi0Mom-pi0Utils_HSMShowerMom)>=0.00001!!! "<<Max_pi0Mom<<" "<<pi0Utils_HSMShowerMom<<std::endl; 
+
+				double SecondMax_pi0Mom = pi0ShowerUtils::CalPi0UtilsMom(parScaledMom[maxtwo.second], parEDep[maxtwo.second], isWaterConfig);
+				double invariantmass = pi0ShowerUtils::CalInvariantMass(Max_pi0Mom, Max_Dir, SecondMax_pi0Mom, SecondMax_Dir); // use nueutil mom
+				double cospi0thetaz = (Max_pi0Mom*Max_Dir[2]+SecondMax_pi0Mom*SecondMax_Dir[2])/TMath::Sqrt(TMath::Power(Max_pi0Mom*Max_Dir[0]+SecondMax_pi0Mom*SecondMax_Dir[0], 2)+TMath::Power(Max_pi0Mom*Max_Dir[1]+SecondMax_pi0Mom*SecondMax_Dir[1], 2)+TMath::Power(Max_pi0Mom*Max_Dir[2]+SecondMax_pi0Mom*SecondMax_Dir[2], 2));
+
+				if(TMath::ACos(cospi0thetaz)<1.04&&invariantmass>60&&invariantmass<200)
+					NCResonantPi0Sideband_ReconShowerVisibleEnergy->Fill(invariantmass);//ReconShowerEnergy);
 			}
 		}
 	}
@@ -196,8 +216,8 @@ void DataSets::FillNCBKCSHistograms(){
 void DataSets::InitNumuCCBKCSHistograms()
 {
 //	std::shared_ptr<TH1D> templatehist = std::make_shared<TH1D>(GetTemplateHistogram());
-    TH1D* templatehist = GetTemplateHistogram();
-	std::string histoname = "numuCCDISMultiPionSideband_ReconShowerVisibleEnergy";
+    TH1D* templatehist = GetNumuCCBKCSTemplateHistogram();
+	std::string histoname = "numuCCDISMultiPionSideband_ReconTrackAngle";
 	histoname += (_isWaterConfig ? "_waterin":"_waterout");
 	histoname += (_numode ? "_FHC":"_RHC");
 	numuCCDISMultiPionSideband_ReconShowerVisibleEnergy = (TH1D*) templatehist->Clone(histoname.c_str());
@@ -212,7 +232,7 @@ void DataSets::FillNumuCCBKCSHistograms(){
 
 	if(_inputnumuccbkcsfilename=="")
 	{
-		std::cout<<"NO NC Control Sample in Current Configuration"<<std::endl;
+		std::cout<<"NO NumuCC Control Sample in Current Configuration"<<std::endl;
 		return ;
 	}
 
@@ -241,18 +261,34 @@ void DataSets::FillNumuCCBKCSHistograms(){
 //	int numode;
 	int accum_level;
 	double ReconShowerEnergy;
+	//added just for now for nomandatorycut root files
+	int NValidParticles;
+	int NValidTracks;
+	int LongestTrackLayers_atTrackReconStage;
+	double LongestTrackCostheta_atTrackReconStage;
+	
+	////////
 	_defaultTree->SetBranchAddress("evt", &EventID);
 	_defaultTree->SetBranchAddress("isWaterConfig", &isWaterConfig);
 //	_defaultTree->SetBranchAddress("numode", &numode);
 	_defaultTree->SetBranchAddress("accum_level", &accum_level);
 	_defaultTree->SetBranchAddress("ReconShowerEnergy", &ReconShowerEnergy);
+	_defaultTree->SetBranchAddress("NValidParticles", &NValidParticles);
+	_defaultTree->SetBranchAddress("NValidTracks", &NValidTracks);
+	_defaultTree->SetBranchAddress("LongestTrackLayers_atTrackReconStage", &LongestTrackLayers_atTrackReconStage);
+	_defaultTree->SetBranchAddress("LongestTrackCostheta_atTrackReconStage", &LongestTrackCostheta_atTrackReconStage);
+
 
 	long int NEntries = _defaultTree->GetEntries();
 	for(long int ievt=0; ievt<NEntries; ievt++)
 	{
 		 _defaultTree->GetEntry(ievt);
-		if(accum_level>5)
-			numuCCDISMultiPionSideband_ReconShowerVisibleEnergy->Fill(ReconShowerEnergy);
+		if(accum_level>5&&NValidParticles>=3&&NValidTracks>=2)//&&LongestTrackLayers_atTrackReconStage>13)
+		{
+//			std::cout<<"LongestTrackLayers_atTrackReconStage = "<<LongestTrackLayers_atTrackReconStage<<std::endl;
+			if(LongestTrackLayers_atTrackReconStage>23)
+				numuCCDISMultiPionSideband_ReconShowerVisibleEnergy->Fill(TMath::ACos(LongestTrackCostheta_atTrackReconStage));//ReconShowerEnergy);
+		}
 	}
 
 	delete _defaultTree;
@@ -280,6 +316,8 @@ void MCEvent::operator=(MCEvent &mcEvent)
 	isWaterConfig = mcEvent.isWaterConfig;
 //	mcEvent.numode = numode;
 	accum_level = mcEvent.accum_level;
+	NValidParticles = mcEvent.NValidParticles;
+	NValidTracks = mcEvent.NValidTracks;
 	HSMTrackLayers = mcEvent.HSMTrackLayers;
 	HSMShowerLayers = mcEvent.HSMShowerLayers;
 	WTCharges = mcEvent.WTCharges;
@@ -289,9 +327,25 @@ void MCEvent::operator=(MCEvent &mcEvent)
 	ShowerMedianWidth = mcEvent.ShowerMedianWidth;
 	ShowerEDepFraction = mcEvent.ShowerEDepFraction;
 	AllParTotEDepInEvent = mcEvent.AllParTotEDepInEvent;
+
+	LongestTrackCostheta_atTrackReconStage = mcEvent.LongestTrackCostheta_atTrackReconStage;
+	LongestTrackLayers_atTrackReconStage = mcEvent.LongestTrackLayers_atTrackReconStage;
+
 	invariantmass = mcEvent.invariantmass;
 	twoshowerEDepfrac = mcEvent.twoshowerEDepfrac;
 	cospi0thetaz = mcEvent.cospi0thetaz;
+	maxEDepShower_ScaledMom = mcEvent.maxEDepShower_ScaledMom;
+	maxEDepShower_EDep = mcEvent.maxEDepShower_EDep;
+	maxEDepShower_Dir[0] = mcEvent.maxEDepShower_Dir[0];
+	maxEDepShower_Dir[1] = mcEvent.maxEDepShower_Dir[1];
+	maxEDepShower_Dir[2] = mcEvent.maxEDepShower_Dir[2];
+	second_maxEDepShower_ScaledMom = mcEvent.second_maxEDepShower_ScaledMom;
+	second_maxEDepShower_EDep = mcEvent.second_maxEDepShower_EDep;
+	second_maxEDepShower_Dir[0] = mcEvent.second_maxEDepShower_Dir[0];
+	second_maxEDepShower_Dir[1] = mcEvent.second_maxEDepShower_Dir[1];
+	second_maxEDepShower_Dir[2] = mcEvent.second_maxEDepShower_Dir[2];
+	NtruePi0 =  mcEvent.NtruePi0;
+	NtruePiCharge = mcEvent.NtruePiCharge;
 
 	//make sure the name here is the same with the name in FitParam
 	spline_MaCCQE                 = (TGraph*)  mcEvent.spline_MaCCQE->Clone("MAQE");//"MaCCQE");
@@ -307,7 +361,7 @@ void MCEvent::operator=(MCEvent &mcEvent)
 	spline_NIWG_DIS_BY            = (TGraph*)  mcEvent.spline_NIWG_DIS_BY           ->Clone("CC_BY_DIS");  
 	spline_NIWG_MultiPi_BY        = (TGraph*)  mcEvent.spline_NIWG_MultiPi_BY       ->Clone("CC_BY_MPi"); 
 	spline_NIWG_MultiPi_Xsec_AGKY = (TGraph*)  mcEvent.spline_NIWG_MultiPi_Xsec_AGKY->Clone("CC_AGKY_Mult"); 
-	spline_NIWG2012a_nc1piE0      = (TGraph*)  mcEvent.spline_NIWG2012a_nc1piE0     ->Clone("NC1PI_MINE"); //not sure about the name
+	spline_NIWG2012a_nc1piE0      = (TGraph*)  mcEvent.spline_NIWG2012a_nc1piE0     ->Clone("NC1PI_MINE"); //not sure about the name  //->not in input parameters for now
 	spline_NIWG2012a_nccohE0      = (TGraph*)  mcEvent.spline_NIWG2012a_nccohE0     ->Clone("NC_Coh"); 
 	spline_NIWG2012a_ncotherE0    = (TGraph*)  mcEvent.spline_NIWG2012a_ncotherE0   ->Clone("NC_other_near");  
 	spline_NIWG2012a_nc1pi0E0     = (TGraph*)  mcEvent.spline_NIWG2012a_nc1pi0E0    ->Clone("NC_1gamma");//not sure about the name    
@@ -337,11 +391,11 @@ bool MCSimUnit::GetMCEvent(MCEvent &mcEvent, int ientry)//, int type)
 //	std::cout<<"GetEvent "<<ientry<<" "<<EventID<<std::endl;
 	bool passcuts = 0;
 
-	if(_type==0&&accum_level>9&&HSMTrackLayers>13)//cut0&&cut1&&cut2&&cut5)//tmp
+	if(_type==0&&accum_level>9&&HSMTrackLayers>13)//cut0&&cut1&&cut2&&cut5)//tmp  //HSMTrackLayers has been extended to be larger than 13, which is applied when FillMCHIsto. Since no sys on HSMTrackLayers is applied at this moment, so keep>13 here to save memory needed to stoer events, but may need to remove it later if applying systematics on it.
 		passcuts = 1;
-	else if(_type==1&&accum_level>6)//nc
+	else if(_type==1&&accum_level>7&&HSMShowerLayers>13)//accum_level>6)//nc, see the reason in data fill
 		passcuts = 1;
-	else if(_type==2&&accum_level>5)//numucc
+	else if(_type==2&&accum_level>5&&NValidParticles>=3&&NValidTracks>=2)//numucc
 		passcuts = 1;
 	if(passcuts)
 	{
@@ -375,6 +429,8 @@ bool MCSimUnit::GetMCEvent(MCEvent &mcEvent, int ientry)//, int type)
 		mcEvent.isWaterConfig = isWaterConfig;
 
 		mcEvent.accum_level = accum_level;
+		mcEvent.NValidParticles = NValidParticles;
+		mcEvent.NValidTracks  = NValidTracks;
 		mcEvent.HSMTrackLayers = HSMTrackLayers;
 		mcEvent.HSMShowerLayers = HSMShowerLayers;
 //		mcEvent.HSMShowerContainID = HSMShowerContainID;
@@ -387,25 +443,62 @@ bool MCSimUnit::GetMCEvent(MCEvent &mcEvent, int ientry)//, int type)
 		mcEvent.ShowerEDepFraction = ShowerEDepFraction;
 		mcEvent.AllParTotEDepInEvent = AllParTotEDepInEvent;
 
-		mcEvent.totTrueParKin = GettotTrueConParKin();
+		mcEvent.LongestTrackCostheta_atTrackReconStage = LongestTrackCostheta_atTrackReconStage;
+		mcEvent.LongestTrackLayers_atTrackReconStage = LongestTrackLayers_atTrackReconStage;
+
 		//not directly from setbranchadress
+		mcEvent.totTrueParKin = GettotTrueConParKin();
+		auto npis = GetNTruePions();
+		mcEvent.NtruePi0 = npis.first;
+		mcEvent.NtruePiCharge = npis.second;
+		if(NPrimaryPi0s!=npis.first)//sanity check
+		{
+			std::cout<<"Warning!!! Event"<<EventID<<" has NPrimaryPi0s = "<<NPrimaryPi0s<<" != NtruePi0 = "<<npis.first<<std::endl;
+		}
 		if(_type==1)//nc
 		{
 			if(NValidShowers<2)
 				throw std::runtime_error("NValidShowers<2, not mathcing the cuts applied");
 			std::pair<int, int> maxtwo = pi0ShowerUtils::FindMaxTwoShower(particleDim, parScaledMom, parMom, parEDep, 0, iIncrementPar-1);
-//			mcEvent.maxEDepShowerIndex = maxtwo.first;
-//			mcEvent.secondmaxEDepShowerIndex = maxtwo.second;
+
+			if(maxtwo.first>=0)
+			{
+				if(std::abs(parScaledMom[maxtwo.first]-ReconShowerEnergy)>0.001) //sanity check
+				{
+					std::cout<<"Warning!!! parScaledMom[maxtwo.first] = "<<parScaledMom[maxtwo.first]<<" != ReconShowerEnergy = "<<ReconShowerEnergy<<std::endl;
+				}
+				mcEvent.maxEDepShower_ScaledMom = parScaledMom[maxtwo.first]; 
+				mcEvent.maxEDepShower_EDep = parEDep[maxtwo.first];
+				mcEvent.maxEDepShower_Dir[0] = parDirection[maxtwo.first][0]; 
+				mcEvent.maxEDepShower_Dir[1] = parDirection[maxtwo.first][1]; 
+				mcEvent.maxEDepShower_Dir[2] = parDirection[maxtwo.first][2]; 
+			}
+			if(maxtwo.second>=0)
+			{
+				mcEvent.second_maxEDepShower_ScaledMom = parScaledMom[maxtwo.second]; 
+				mcEvent.second_maxEDepShower_EDep = parEDep[maxtwo.second];
+				mcEvent.second_maxEDepShower_Dir[0] = parDirection[maxtwo.second][0]; 
+				mcEvent.second_maxEDepShower_Dir[1] = parDirection[maxtwo.second][1]; 
+				mcEvent.second_maxEDepShower_Dir[2] = parDirection[maxtwo.second][2]; 
+			}
+
 			if(maxtwo.first>=0&&maxtwo.second>=0)
 			{
 				mcEvent.twoshowerEDepfrac = (parEDep[maxtwo.first]+parEDep[maxtwo.second])/AllParTotEDepInEvent;
 				double Max_Dir[3] = {parDirection[maxtwo.first][0], parDirection[maxtwo.first][1], parDirection[maxtwo.first][2]};
 				double SecondMax_Dir[3] = {parDirection[maxtwo.second][0], parDirection[maxtwo.second][1], parDirection[maxtwo.second][2]};
-				double invarinatmass = pi0ShowerUtils::CalInvariantMass(parScaledMom[maxtwo.first], Max_Dir, parScaledMom[maxtwo.second],SecondMax_Dir); // use nueutil mom
-//					double cospi0thetaz = (Max_pi0Mom*Max_Dir[2]+SecondMax_pi0Mom*SecondMax_Dir[2])/TMath::Sqrt(TMath::Power(Max_pi0Mom*Max_Dir[0]+SecondMax_pi0Mom*SecondMax_Dir[0], 2)+TMath::Power(Max_pi0Mom*Max_Dir[1]+SecondMax_pi0Mom*SecondMax_Dir[1], 2)+TMath::Power(Max_pi0Mom*Max_Dir[2]+SecondMax_pi0Mom*SecondMax_Dir[2], 2));
-				double cospi0thetaz = (parScaledMom[maxtwo.first]*Max_Dir[2]+parScaledMom[maxtwo.second]*SecondMax_Dir[2])/TMath::Sqrt(TMath::Power(parScaledMom[maxtwo.first]*Max_Dir[0]+parScaledMom[maxtwo.second]*SecondMax_Dir[0], 2)+TMath::Power(parScaledMom[maxtwo.first]*Max_Dir[1]+parScaledMom[maxtwo.second]*SecondMax_Dir[1], 2)+TMath::Power(parScaledMom[maxtwo.first]*Max_Dir[2]+parScaledMom[maxtwo.second]*SecondMax_Dir[2], 2));
+				// use nueutil mom
+//				double invariantmass = pi0ShowerUtils::CalInvariantMass(parScaledMom[maxtwo.first], Max_Dir, parScaledMom[maxtwo.second],SecondMax_Dir); 
+//				double cospi0thetaz = (parScaledMom[maxtwo.first]*Max_Dir[2]+parScaledMom[maxtwo.second]*SecondMax_Dir[2])/TMath::Sqrt(TMath::Power(parScaledMom[maxtwo.first]*Max_Dir[0]+parScaledMom[maxtwo.second]*SecondMax_Dir[0], 2)+TMath::Power(parScaledMom[maxtwo.first]*Max_Dir[1]+parScaledMom[maxtwo.second]*SecondMax_Dir[1], 2)+TMath::Power(parScaledMom[maxtwo.first]*Max_Dir[2]+parScaledMom[maxtwo.second]*SecondMax_Dir[2], 2));
+				//use pi0 util mom
+				double Max_pi0Mom = pi0ShowerUtils::CalPi0UtilsMom(parScaledMom[maxtwo.first], parEDep[maxtwo.first], isWaterConfig);
+				if(std::abs(Max_pi0Mom-pi0Utils_HSMShowerMom)>=0.00001) //sanity check
+					std::cout<<"Warning!!! std::abs(Max_pi0Mom-pi0Utils_HSMShowerMom)>=0.00001!!! "<<Max_pi0Mom<<" "<<pi0Utils_HSMShowerMom<<std::endl; 
 
-				mcEvent.invariantmass = invarinatmass;
+				double SecondMax_pi0Mom = pi0ShowerUtils::CalPi0UtilsMom(parScaledMom[maxtwo.second], parEDep[maxtwo.second], isWaterConfig);
+				double invariantmass = pi0ShowerUtils::CalInvariantMass(Max_pi0Mom, Max_Dir, SecondMax_pi0Mom, SecondMax_Dir); // use nueutil mom
+				double cospi0thetaz = (Max_pi0Mom*Max_Dir[2]+SecondMax_pi0Mom*SecondMax_Dir[2])/TMath::Sqrt(TMath::Power(Max_pi0Mom*Max_Dir[0]+SecondMax_pi0Mom*SecondMax_Dir[0], 2)+TMath::Power(Max_pi0Mom*Max_Dir[1]+SecondMax_pi0Mom*SecondMax_Dir[1], 2)+TMath::Power(Max_pi0Mom*Max_Dir[2]+SecondMax_pi0Mom*SecondMax_Dir[2], 2));
+				mcEvent.invariantmass = invariantmass;
 				mcEvent.cospi0thetaz = cospi0thetaz;
 			}
 		}
@@ -482,8 +575,14 @@ void MCSimUnit::GetAllSamples()
 			std::cout<<ientry<<" "<<evt.EventID<<std::endl;
 
 		//some cuts are applied in GetMCEvent. If wanting to apply additional cuts, we can add here or in GetMCEvent
-		if(_type==1&&!(evt.twoshowerEDepfrac>0.85&&TMath::ACos(evt.cospi0thetaz)<1.04&&evt.invariantmass>60&&evt.invariantmass<200))
+		if(_type==1&&!(TMath::ACos(evt.cospi0thetaz)<1.04))//&&evt.twoshowerEDepfrac>0.85&&evt.invariantmass>60&&evt.invariantmass<200
 			continue;
+
+		if(_type==2&&!(evt.accum_level>5&&evt.NValidParticles>=3&&evt.NValidTracks>=2&&evt.LongestTrackLayers_atTrackReconStage>23)) //tmp for numuCCBKCS as it uses nomandetorycuts samples
+			continue;
+//		else if(_type==2)
+//			std::cout<<"evt.LongestTrackLayers_atTrackReconStage = "<<evt.LongestTrackLayers_atTrackReconStage<<std::endl;
+
 		_sample.push_back(evt); //signal need to tune SMw ans SCF, ncbk need to tune SCF
 		/*
 		if(_type==0)

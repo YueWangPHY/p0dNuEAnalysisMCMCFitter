@@ -402,40 +402,22 @@ void RunMCMC(std::vector<std::string>& mcWaterinFHC, std::vector<std::string>& m
   // Starting point should be prior + random number b/w -1 and 1 * sigma
   // Check if 1 sigma error are larger or smaller that lb or ub in which case get a new value
 	std::cout<<"randomize p"<<std::endl;
-  for (std::size_t i=0; i<p.size(); ++i) {
-//    //Set the signal weight priors to their burned -in value
-//    if (i==0) p[i] = 1.5;
-//    else if (i==1) p[i] = 1.0;
-//    else if (i==2) p[i] = 0.8;
-//    else if (i==3) p[i] = 0.8;
-//    else if (i==4) p[i] = 0.8;
-//    else if (i==5) p[i] = 1.0;
-//    else if (i==6) p[i] = 1.0;
-//    else if (i==7) p[i] = 1.2;
-//    else if (i==8) p[i] = 1.2;
-//    else if (i==9) p[i] = 1.2;
-//    else if (i==10) p[i] = 1.2;
-//    else if (i==11) p[i] = 0.8;
-//    else if (i==12) p[i] = 0.9;
-//    else if (i==13) p[i] = 1.0;
-//    else if (i==14) p[i] = 1.1;
-//    else if (i==15) p[i] = 1.2;
-//    else if (i==16) p[i] = 1.2;
-//    else if (i==17) p[i] = 1.2;
-//    else p[i] = like.fPriorParams[i];// + (gRandom->Uniform(-1,1)*like.fSigmaParams[i]);
-//	
-//    
-//    while(p[i] < like.fLowerBound[i] || p[i] > like.fUpperBound[i]){
-//      p[i] = like.fPriorParams[i] + (gRandom->Uniform(-1,1)*like.fSigmaParams[i]);      
-//    }
-//    
-    p[i] = like.fInitParams[i];//like.fPriorParams[i] + (gRandom->Uniform(-1,1)*like.fSigmaParams[i]);
-//	p[i] = like.fPriorParams[i] + (gRandom->Uniform(-1,1)*like.fSigmaParams[i]);
-	std::cout<<like.fParamNames[i]<<" "<<like.fPriorParams[i]<<" "<<p[i]<<" "<<like.fLowerBound[i]<<" "<<like.fUpperBound[i]<<std::endl;
-    while(p[i] < like.fLowerBound[i] || p[i] > like.fUpperBound[i]){
-      p[i] = like.fPriorParams[i] + (gRandom->Uniform(-1,1)*like.fSigmaParams[i]);
-     }
-  }
+
+	p[0] = 1.56708;//48.1863;
+	p[1] = 1.03314;//-570.683;
+	p[2] = 0.996576;//368.606;
+	p[3] = 1.00122;//2110.97;
+	p[4] = 1.00333;//305.838;
+	p[5] = 1.00054;//-773.903;
+	p[6] = 0.995245;//-1878.11;
+	p[7] = 1.00376;//-2051.21;
+	p[8] = 0.992733;//483.149;
+	p[9] = 1.00421;//-2543.2;
+//	p[10] = 1426.03;
+//	p[11] = 1001.37;
+//	p[12] = -1077.94;
+//	p[13] = -561.253;
+//	p[14] = 2868.89;
 
 	std::cout<<"Start mcmc"<<std::endl;
   mcmc.Start(p,true); 
@@ -443,6 +425,7 @@ void RunMCMC(std::vector<std::string>& mcWaterinFHC, std::vector<std::string>& m
   outputFile->cd();
   like.FillMCHistograms(p);//not sure to have it or not...
 //  like.WriteSimulation(p,"initial");
+  /*
   // First burnin of the chain (don't save the output).  This is looking for
   // the best fit point.
   int total_burnin = 0;
@@ -485,47 +468,50 @@ void RunMCMC(std::vector<std::string>& mcWaterinFHC, std::vector<std::string>& m
     //    like.WriteSimulation(proposal.GetEstimatedCenter(),
     //			 burninName.str().c_str());
 
+  }
+*/
+
 	TH1D* Data_SS_ReconShowerVisibleEnergy_waterin_afterburn_norm = (TH1D*) like.Data_SS_ReconShowerVisibleEnergy[0]->Clone("Data_SS_ReconShowerVisibleEnergy_waterin_afterburn_norm");
 	Data_SS_ReconShowerVisibleEnergy_waterin_afterburn_norm->Sumw2();
-	Data_SS_ReconShowerVisibleEnergy_waterin_afterburn_norm->Scale(1.0/Data_SS_ReconShowerVisibleEnergy_waterin_afterburn_norm->Integral());
+//	Data_SS_ReconShowerVisibleEnergy_waterin_afterburn_norm->Scale(1.0/Data_SS_ReconShowerVisibleEnergy_waterin_afterburn_norm->Integral());
 	TH1D* Data_SS_ReconShowerVisibleEnergy_waterout_afterburn_norm = (TH1D*) like.Data_SS_ReconShowerVisibleEnergy[1]->Clone("Data_SS_ReconShowerVisibleEnergy_waterout_afterburn_norm");
 	Data_SS_ReconShowerVisibleEnergy_waterout_afterburn_norm->Sumw2();
-	Data_SS_ReconShowerVisibleEnergy_waterout_afterburn_norm->Scale(1.0/Data_SS_ReconShowerVisibleEnergy_waterout_afterburn_norm->Integral());
+//	Data_SS_ReconShowerVisibleEnergy_waterout_afterburn_norm->Scale(1.0/Data_SS_ReconShowerVisibleEnergy_waterout_afterburn_norm->Integral());
 		
-	TH1D* Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm = (TH1D*) like.Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy[0]->Clone("Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm");
-	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Sumw2();
-	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Scale(1.0/Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Integral());
-	TH1D* Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm = (TH1D*) like.Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy[1]->Clone("Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm");
-	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Sumw2();
-	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Scale(1.0/Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Integral());
+//	TH1D* Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm = (TH1D*) like.Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy[0]->Clone("Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm");
+//	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Sumw2();
+//	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Scale(1.0/Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Integral());
+//	TH1D* Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm = (TH1D*) like.Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy[1]->Clone("Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm");
+//	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Sumw2();
+//	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Scale(1.0/Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Integral());
 
-	TH1D* Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm = (TH1D*) like.Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy[0]->Clone("Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm");
-	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Sumw2();
-	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Scale(1.0/Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Integral());
-	TH1D* Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm = (TH1D*) like.Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy[1]->Clone("Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm");
-	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Sumw2();
-	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Scale(1.0/Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Integral());
+//	TH1D* Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm = (TH1D*) like.Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy[0]->Clone("Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm");
+//	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Sumw2();
+//	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Scale(1.0/Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Integral());
+//	TH1D* Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm = (TH1D*) like.Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy[1]->Clone("Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm");
+//	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Sumw2();
+//	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Scale(1.0/Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Integral());
 
 	TH1D* MC_SS_ReconShowerVisibleEnergy_waterin_afterburn_norm = (TH1D*) like.MC_SS_ReconShowerVisibleEnergy[0]->Clone("MC_SS_ReconShowerVisibleEnergy_waterin_afterburn_norm");
 	MC_SS_ReconShowerVisibleEnergy_waterin_afterburn_norm->Sumw2();
-	MC_SS_ReconShowerVisibleEnergy_waterin_afterburn_norm->Scale(1.0/MC_SS_ReconShowerVisibleEnergy_waterin_afterburn_norm->Integral());
+//	MC_SS_ReconShowerVisibleEnergy_waterin_afterburn_norm->Scale(1.0/MC_SS_ReconShowerVisibleEnergy_waterin_afterburn_norm->Integral());
 	TH1D* MC_SS_ReconShowerVisibleEnergy_waterout_afterburn_norm = (TH1D*) like.MC_SS_ReconShowerVisibleEnergy[1]->Clone("MC_SS_ReconShowerVisibleEnergy_waterout_afterburn_norm");
 	MC_SS_ReconShowerVisibleEnergy_waterout_afterburn_norm->Sumw2();
-	MC_SS_ReconShowerVisibleEnergy_waterout_afterburn_norm->Scale(1.0/MC_SS_ReconShowerVisibleEnergy_waterout_afterburn_norm->Integral());
+//	MC_SS_ReconShowerVisibleEnergy_waterout_afterburn_norm->Scale(1.0/MC_SS_ReconShowerVisibleEnergy_waterout_afterburn_norm->Integral());
 		
-	TH1D* MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm = (TH1D*) like.MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy[0]->Clone("MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm");
-	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Sumw2();
-	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Scale(1.0/MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Integral());
-	TH1D* MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm = (TH1D*) like.MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy[1]->Clone("MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm");
-	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Sumw2();
-	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Scale(1.0/MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Integral());
-
-	TH1D* MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm = (TH1D*) like.MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy[0]->Clone("MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm");
-	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Sumw2();
-	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Scale(1.0/MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Integral());
-	TH1D* MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm = (TH1D*) like.MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy[1]->Clone("MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm");
-	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Sumw2();
-	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Scale(1.0/MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Integral());
+//	TH1D* MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm = (TH1D*) like.MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy[0]->Clone("MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm");
+//	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Sumw2();
+//	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Scale(1.0/MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Integral());
+//	TH1D* MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm = (TH1D*) like.MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy[1]->Clone("MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm");
+//	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Sumw2();
+//	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Scale(1.0/MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Integral());
+//
+//	TH1D* MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm = (TH1D*) like.MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy[0]->Clone("MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm");
+//	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Sumw2();
+//	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Scale(1.0/MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Integral());
+//	TH1D* MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm = (TH1D*) like.MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy[1]->Clone("MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm");
+//	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Sumw2();
+//	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Scale(1.0/MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Integral());
 
 	MC_SS_ReconShowerVisibleEnergy_waterin_afterburn_norm->Draw("hist");
 	Data_SS_ReconShowerVisibleEnergy_waterin_afterburn_norm->Draw("same ep");
@@ -534,30 +520,30 @@ void RunMCMC(std::vector<std::string>& mcWaterinFHC, std::vector<std::string>& m
 	Data_SS_ReconShowerVisibleEnergy_waterout_afterburn_norm->Draw("same ep");
   	gPad->Print("AfterBurn-MC-Data-ReconShowerVisibleEnergy-waterout-withoutsys.png");
 
-	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Draw("hist");
-	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Draw("same ep");
-    gPad->Print("AfterBurn-MC-Data-NCResonantPi0Sideband_ReconShowerVisibleEnergy-waterin-withoutsys.png");
-	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Draw("hist");
-	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Draw("same ep");
-    gPad->Print("AfterBurn-MC-Data-NCResonantPi0Sideband_ReconShowerVisibleEnergy-waterout-withoutsys.png");
-
-	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Draw("hist");
-	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Draw("same ep");
-	gPad->Print("AfterBurn-MC-Data-numuCCDISMultiPionSideband_ReconShowerVisibleEnergy-waterin-withoutsys.png");
-	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Draw("hist");
-	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Draw("same ep");
-	gPad->Print("AfterBurn-MC-Data-numuCCDISMultiPionSideband_ReconShowerVisibleEnergy-waterout-withoutsys.png");
+//	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Draw("hist");
+//	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Draw("same ep");
+//    gPad->Print("AfterBurn-MC-Data-NCResonantPi0Sideband_ReconShowerVisibleEnergy-waterin-withoutsys.png");
+//	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Draw("hist");
+//	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Draw("same ep");
+//    gPad->Print("AfterBurn-MC-Data-NCResonantPi0Sideband_ReconShowerVisibleEnergy-waterout-withoutsys.png");
+//
+//	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Draw("hist");
+//	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_afterburn_norm->Draw("same ep");
+//	gPad->Print("AfterBurn-MC-Data-numuCCDISMultiPionSideband_ReconShowerVisibleEnergy-waterin-withoutsys.png");
+//	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Draw("hist");
+//	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_afterburn_norm->Draw("same ep");
+//	gPad->Print("AfterBurn-MC-Data-numuCCDISMultiPionSideband_ReconShowerVisibleEnergy-waterout-withoutsys.png");
 
 	Data_SS_ReconShowerVisibleEnergy_waterin_norm2 = NormalizeHistogram(like.Data_SS_ReconShowerVisibleEnergy[0]);
 	Data_SS_ReconShowerVisibleEnergy_waterout_norm2 = NormalizeHistogram(like.Data_SS_ReconShowerVisibleEnergy[1]);
-	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_norm2 = NormalizeHistogram(like.MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy[0]);
-	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_norm2 = NormalizeHistogram(like.MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy[1]);
-	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_norm2 = NormalizeHistogram(like.MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy[0]);
-	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_norm2 = NormalizeHistogram(like.MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy[1]);
-	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_norm2 = NormalizeHistogram(like.Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy[0]);
-	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_norm2 = NormalizeHistogram(like.Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy[1]);
-	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_norm2 = NormalizeHistogram(like.Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy[0]);
-	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_norm2 = NormalizeHistogram(like.Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy[1]);
+//	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_norm2 = NormalizeHistogram(like.MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy[0]);
+//	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_norm2 = NormalizeHistogram(like.MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy[1]);
+//	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_norm2 = NormalizeHistogram(like.MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy[0]);
+//	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_norm2 = NormalizeHistogram(like.MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy[1]);
+//	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_norm2 = NormalizeHistogram(like.Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy[0]);
+//	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_norm2 = NormalizeHistogram(like.Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy[1]);
+//	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_norm2 = NormalizeHistogram(like.Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy[0]);
+//	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_norm2 = NormalizeHistogram(like.Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy[1]);
 	MC_SS_ReconShowerVisibleEnergy_waterin_norm2 = NormalizeHistogram(like.MC_SS_ReconShowerVisibleEnergy[0]);
 	MC_SS_ReconShowerVisibleEnergy_waterout_norm2 = NormalizeHistogram(like.MC_SS_ReconShowerVisibleEnergy[1]);
 	MC_SS_ReconShowerVisibleEnergy_waterin_norm2->Draw("hist");
@@ -567,21 +553,20 @@ void RunMCMC(std::vector<std::string>& mcWaterinFHC, std::vector<std::string>& m
 	Data_SS_ReconShowerVisibleEnergy_waterout_norm2->Draw("same ep");
   	gPad->Print("AfterBurn-MC-Data-ReconShowerVisibleEnergy-waterout-2-withoutsys.png");
 
-	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_norm2->Draw("hist");
-	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_norm2->Draw("same ep");
-    gPad->Print("AfterBurn-MC-Data-NCResonantPi0Sideband_ReconShowerVisibleEnergy-waterin-2-withoutsys.png");
-	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_norm2->Draw("hist");
-	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_norm2->Draw("same ep");
-    gPad->Print("AfterBurn-MC-Data-NCResonantPi0Sideband_ReconShowerVisibleEnergy-waterout-2-withoutsys.png");
-
-	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_norm2->Draw("hist");
-	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_norm2->Draw("same ep");
-	gPad->Print("AfterBurn-MC-Data-numuCCDISMultiPionSideband_ReconShowerVisibleEnergy-waterin-2-withoutsys.png");
-	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_norm2->Draw("hist");
-	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_norm2->Draw("same ep");
-	gPad->Print("AfterBurn-MC-Data-numuCCDISMultiPionSideband_ReconShowerVisibleEnergy-waterout-2-withoutsys.png");
-  }
-
+//	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_norm2->Draw("hist");
+//	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterin_norm2->Draw("same ep");
+//    gPad->Print("AfterBurn-MC-Data-NCResonantPi0Sideband_ReconShowerVisibleEnergy-waterin-2-withoutsys.png");
+//	MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_norm2->Draw("hist");
+//	Data_NCResonantPi0Sideband_ReconShowerVisibleEnergy_waterout_norm2->Draw("same ep");
+//    gPad->Print("AfterBurn-MC-Data-NCResonantPi0Sideband_ReconShowerVisibleEnergy-waterout-2-withoutsys.png");
+//
+//	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_norm2->Draw("hist");
+//	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterin_norm2->Draw("same ep");
+//	gPad->Print("AfterBurn-MC-Data-numuCCDISMultiPionSideband_ReconShowerVisibleEnergy-waterin-2-withoutsys.png");
+//	MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_norm2->Draw("hist");
+//	Data_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy_waterout_norm2->Draw("same ep");
+//	gPad->Print("AfterBurn-MC-Data-numuCCDISMultiPionSideband_ReconShowerVisibleEnergy-waterout-2-withoutsys.png");
+/*
   std::cout << "total number of burnin steps : " << total_burnin << std::endl;
   for (int chain = 0; chain < gChainCycles; ++chain) {
     proposal.UpdateProposal();
@@ -747,7 +732,7 @@ void RunMCMC(std::vector<std::string>& mcWaterinFHC, std::vector<std::string>& m
   std::cout << " MCMC took " << clock.RealTime() << " seconds to complete.(" << clock.RealTime() / gChainLength << "s / step)." << std::endl;
   std::cout << "I finished writing to the " << outFile.c_str()  << std::endl;
   if (outputFile) delete outputFile;
-  
+ */ 
  return ;
 }
 
