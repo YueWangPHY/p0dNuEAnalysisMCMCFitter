@@ -9,27 +9,85 @@
 
 namespace pi0ShowerUtils{
 
-	double CalPi0UtilsMom(double nueMom, double EDep, bool isWaterConfig)
+	double CalPi0UtilsMom(const double nueMom, const float EDep, const int isWaterConfig)
 	{
 		double chargeratioinWT = 0;
 		double pi0utilMom = -1;
-		if(isWaterConfig)
+		if(isWaterConfig == 1)
 		{
 			chargeratioinWT = (nueMom/EDep-EM_SCALE_SHOWER_ECAL)/(EM_SCALE_SHOWER_WATER-EM_SCALE_SHOWER_ECAL);
 			double pi0_EMSLOP = EM_SLOPE_WATER*chargeratioinWT + EM_SLOPE_ECAL*(1.0-chargeratioinWT);
 			double pi0_EMYINT = EM_YINT_WATER*chargeratioinWT + EM_YINT_ECAL*(1.0-chargeratioinWT);
 			pi0utilMom = pi0_EMSLOP*EDep+pi0_EMYINT;
 		}
-		else{
+		else if(isWaterConfig==0)
+		{
 			chargeratioinWT = (nueMom/EDep-EM_SCALE_SHOWER_ECAL)/(EM_SCALE_SHOWER_AIR-EM_SCALE_SHOWER_ECAL);
 			double pi0_EMSLOP = EM_SLOPE_AIR*chargeratioinWT + EM_SLOPE_ECAL*(1.0-chargeratioinWT);
 			double pi0_EMYINT = EM_YINT_AIR*chargeratioinWT + EM_YINT_ECAL*(1.0-chargeratioinWT);
 			pi0utilMom = pi0_EMSLOP*EDep+pi0_EMYINT;
 		}
+		else
+			std::cout<<"Warning!!! neither water-in nor water-out"<<std::endl;
+		return pi0utilMom;
+	}
+
+
+	double CalPi0UtilsMom_withWeightedScale(const double nueMom, const float EDep, const int isWaterConfig, const double wtslopew, const double wtintw, const double ecalslopew, const double ecalintw)
+	{
+		double chargeratioinWT = 0;
+		double pi0utilMom = -1;
+		if(isWaterConfig==1)
+		{
+			chargeratioinWT = (nueMom/EDep-EM_SCALE_SHOWER_ECAL)/(EM_SCALE_SHOWER_WATER-EM_SCALE_SHOWER_ECAL);
+			double pi0_EMSLOP = wtslopew*EM_SLOPE_WATER*chargeratioinWT + ecalslopew*EM_SLOPE_ECAL*(1.0-chargeratioinWT);
+			double pi0_EMYINT = wtintw*EM_YINT_WATER*chargeratioinWT + ecalintw*EM_YINT_ECAL*(1.0-chargeratioinWT);
+			pi0utilMom = pi0_EMSLOP*EDep+pi0_EMYINT;
+		}
+		else if (isWaterConfig==0)
+		{
+			chargeratioinWT = (nueMom/EDep-EM_SCALE_SHOWER_ECAL)/(EM_SCALE_SHOWER_AIR-EM_SCALE_SHOWER_ECAL);
+			double pi0_EMSLOP = wtslopew*EM_SLOPE_AIR*chargeratioinWT + ecalslopew*EM_SLOPE_ECAL*(1.0-chargeratioinWT);
+			double pi0_EMYINT = wtintw*EM_YINT_AIR*chargeratioinWT + ecalintw*EM_YINT_ECAL*(1.0-chargeratioinWT);
+			pi0utilMom = pi0_EMSLOP*EDep+pi0_EMYINT;
+		}
+		else
+			std::cout<<"Warning!!! neither water-in nor water-out"<<std::endl;
+		return pi0utilMom;
+	}
+
+	double CalPi0UtilsMom_withWeightedScale(const double nueMom, const double EDep, const int isWaterConfig, const double wtslopew, const double wtintw, const double ecalslopew, const double ecalintw)
+	{
+		double chargeratioinWT = 0;
+		double pi0utilMom = -1;
+		if(isWaterConfig==1)
+		{
+			chargeratioinWT = (nueMom/EDep-EM_SCALE_SHOWER_ECAL)/(EM_SCALE_SHOWER_WATER-EM_SCALE_SHOWER_ECAL);
+			double pi0_EMSLOP = wtslopew*EM_SLOPE_WATER*chargeratioinWT + ecalslopew*EM_SLOPE_ECAL*(1.0-chargeratioinWT);
+			double pi0_EMYINT = wtintw*EM_YINT_WATER*chargeratioinWT + ecalintw*EM_YINT_ECAL*(1.0-chargeratioinWT);
+			pi0utilMom = pi0_EMSLOP*EDep+pi0_EMYINT;
+		}
+		else if(isWaterConfig==0)
+		{
+			chargeratioinWT = (nueMom/EDep-EM_SCALE_SHOWER_ECAL)/(EM_SCALE_SHOWER_AIR-EM_SCALE_SHOWER_ECAL);
+			double pi0_EMSLOP = wtslopew*EM_SLOPE_AIR*chargeratioinWT + ecalslopew*EM_SLOPE_ECAL*(1.0-chargeratioinWT);
+			double pi0_EMYINT = wtintw*EM_YINT_AIR*chargeratioinWT + ecalintw*EM_YINT_ECAL*(1.0-chargeratioinWT);
+			pi0utilMom = pi0_EMSLOP*EDep+pi0_EMYINT;
+		}
+		else
+			std::cout<<"Warning!!! neither water-in nor water-out"<<std::endl;
 		return pi0utilMom;
 	}
 		
-	double CalInvariantMass(double mom1, double dir1[3], double mom2, double dir2[3])
+	double CalInvariantMass(const double mom1, const float dir1[3], const double mom2, const float dir2[3])
+	{
+		double totE = mom1+mom2;
+		double totP[3];
+		for(int i=0; i<3; i++)
+			totP[i] = mom1*dir1[i]+mom2*dir2[i];
+		return TMath::Sqrt(std::abs(totE*totE-totP[0]*totP[0]-totP[1]*totP[1]-totP[2]*totP[2]));
+	}
+	double CalInvariantMass(const double mom1, const double dir1[3], const double mom2, const double dir2[3])
 	{
 		double totE = mom1+mom2;
 		double totP[3];
