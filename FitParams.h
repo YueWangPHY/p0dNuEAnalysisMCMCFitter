@@ -48,6 +48,8 @@ public:
 	bool det_params;
 	bool samplecon_params;
 
+	bool det_params_nc1pi0;
+
 	Int_t nParams;
 	std::vector<std::string> ParamNames;
 	std::unordered_map<std::string, int> ParamNamesMap;
@@ -57,10 +59,11 @@ public:
 	std::vector<double> lBoundValues;
 	std::vector<double> uBoundValues;
 
-	Int_t nSigWtParams;
-	Int_t nXsecParams;
-	Int_t nFluxParams;
-	Int_t nDetParams;// to save time when searching 
+//	Int_t nSigWtParams;
+//	Int_t nXsecParams;
+//	Int_t nFluxParams;
+//	Int_t nDetParams;// to save time when searching 
+//	Int_t nSampleConParams;
 
 	int NMAXPARS;
 
@@ -97,7 +100,7 @@ public:
 	void GetCorrelation(TMatrixDSym *Corr)const{*Corr = *correlation;}
 	void GetCorrelationI(TMatrixDSym *iCorr)const{*iCorr = *correlationI;}
 
-	int GetNeutrinoEnergyBinIndex(int numode, int nupdg, double Enu) const; //numode: 1FHC, 0RHC
+	int GetNeutrinoEnergyBinIndex(int numode, int nupdg, double Enu) const; //numode: 1FHC, 0RHC //Enu in the unit of GeV
 	int GetParamIndexFromExactName(std::string name) const; 
 
 	std::vector<int> GetParamIndicesFromName(std::string partname) const;// return indices of parameters whose name contain the argument partname here
