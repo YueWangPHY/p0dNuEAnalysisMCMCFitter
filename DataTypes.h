@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <stdexcept>
 #include <memory>
+#include <utility>
 
 #include <TH1D.h>
 #include "TFile.h"
@@ -41,6 +42,19 @@ public:
 		_binsdis[3] = 2300;
 		_binsdis[4] = 3400;
 		_binsdis[5] = 30000;
+	
+		//ncbkcs
+		_NNCBKCSBins = 7;
+		_ncbkcsbinsdis.resize(_NNCBKCSBins+1);
+		for(int i=0; i<_NNCBKCSBins+1; i++)
+			_ncbkcsbinsdis[i] = 60.0+20.0*i;
+
+		//to add numucc =bkcs binning
+		//int _NNUMUCCBKCSBins; 
+		//std::vector<double> _numuccbkcsbinsdis;
+		_NNUMUCCBKCSBins = 7;//8;
+		_numuccbkcsbinsdis.resize(_NNUMUCCBKCSBins+1);
+		_numuccbkcsbinsdis = {0, 0.2, 0.3, 0.4, 0.5, 0.6, 0.785, 1.57};//1.2, 1.5};
 	}
 
 	virtual void DefineBinning(const int nbins, const std::vector<double>& bindis){
@@ -61,6 +75,26 @@ public:
 		return -2;//should not happen
 	}
 
+	virtual int GetNCBKCSBinIndex(double val) const{
+		if(val<_ncbkcsbinsdis[0])	return 0; //underflow
+		if(val>=_ncbkcsbinsdis[_NNCBKCSBins]) return _NNCBKCSBins+1; //overflow
+		for(int i=0; i<_NNCBKCSBins; i++){
+			if(val>=_ncbkcsbinsdis[i]&&val<_ncbkcsbinsdis[i+1])
+				return i+1;
+		}
+		return -2;//should not happen
+	}
+
+	virtual int GetNumuCCBKCSBinIndex(double val) const{
+		if(val<_numuccbkcsbinsdis[0])	return 0; //underflow
+		if(val>=_numuccbkcsbinsdis[_NNUMUCCBKCSBins]) return _NNUMUCCBKCSBins+1; //overflow
+		for(int i=0; i<_NNUMUCCBKCSBins; i++){
+			if(val>=_numuccbkcsbinsdis[i]&&val<_numuccbkcsbinsdis[i+1])
+				return i+1;
+		}
+		return -2;//should not happen
+	}
+
 	virtual TH1D* GetTemplateHistogram()
 	{
 		const int N = _NBins+1;
@@ -71,10 +105,38 @@ public:
 		return templatehist;
 	}
 
+	virtual TH1D* GetNCBKCSTemplateHistogram()
+	{
+		const int N = _NNCBKCSBins+1;
+		double dis[N];
+		for(int i=0; i<_ncbkcsbinsdis.size(); i++)
+			dis[i] = _ncbkcsbinsdis[i];
+		TH1D* templatehist = new TH1D("ncbkcstemplatehist", "", _NNCBKCSBins, dis);
+		return templatehist;
+	}
+
+	virtual TH1D* GetNumuCCBKCSTemplateHistogram()
+	{
+		const int N = _NNUMUCCBKCSBins+1;
+		double dis[N];
+		for(int i=0; i<_numuccbkcsbinsdis.size(); i++)
+			dis[i] = _numuccbkcsbinsdis[i];
+		TH1D* templatehist = new TH1D("numuccbkcstemplatehist", "", _NNUMUCCBKCSBins, dis);
+		return templatehist;
+	}
+
 private:
+	//singal 
 	int _NBins;//not definted as const intentionally 
 	std::vector<double> _binsdis;
 //	double* _binsdis;//[NBins+1];
+	
+	int _NNCBKCSBins; 
+	std::vector<double> _ncbkcsbinsdis;
+	
+	int _NNUMUCCBKCSBins; 
+	std::vector<double> _numuccbkcsbinsdis;
+
 };
 
 class DataSets: public Binning
@@ -175,6 +237,9 @@ public:
 		TrueVPositionZ=-9999.0;
 		TrueNeutrinoEnergy = -1;
 		totTrueParKin = -1;
+
+		NtruePi0 = -1;
+		NtruePiCharge = -1;
 		
 		RunID = -1;
 		EventID = -1;
@@ -182,6 +247,8 @@ public:
 
 		numode = 1;//-1;
 		accum_level = -1;
+		NValidParticles = -1;
+		NValidTracks = -1;
 		HSMTrackLayers = -1;
 		HSMShowerLayers = -1;
 		WTCharges = -1;
@@ -192,9 +259,18 @@ public:
 		ShowerEDepFraction = -1;
 		AllParTotEDepInEvent = -1;
 
-		invariantmass = -1;
-		twoshowerEDepfrac = -1;
-		cospi0thetaz = -1;
+		LongestTrackLayers_atTrackReconStage = -1;
+		LongestTrackCostheta_atTrackReconStage = -9999.0;
+
+		invariantmass = -9999.0;
+		twoshowerEDepfrac = -9999.0;
+		cospi0thetaz = -9999.0;
+		maxEDepShower_ScaledMom = -9999.0; //should == ReconShowerEnergy
+		maxEDepShower_EDep = -999.0; 
+		maxEDepShower_Dir[0] = maxEDepShower_Dir[1] = maxEDepShower_Dir[2] = -999.0; 
+		second_maxEDepShower_ScaledMom = -9999.0;
+		second_maxEDepShower_EDep = -999.0; 
+		second_maxEDepShower_Dir[0] = second_maxEDepShower_Dir[1] = second_maxEDepShower_Dir[2] = -999.0; 
 
 		spline_MaCCQE = new TGraph();
 		spline_MaRES = new TGraph();
@@ -249,10 +325,24 @@ public:
 	float TrueVPositionX;
 	float TrueVPositionY;
 	float TrueVPositionZ;
-	double TrueNeutrinoEnergy;
+	float TrueNeutrinoEnergy;
+
+	//not directly from setbranchadress
 	double totTrueParKin;
-//	double trueQ2;
-		
+	int NtruePi0;
+	int NtruePiCharge;
+	//reco
+	double invariantmass;
+	double twoshowerEDepfrac;
+	double cospi0thetaz;
+	double maxEDepShower_ScaledMom; //should == ReconShowerEnergy
+	float maxEDepShower_EDep; 
+	float maxEDepShower_Dir[3]; 
+	double second_maxEDepShower_ScaledMom; 
+	float  second_maxEDepShower_EDep; 
+	float  second_maxEDepShower_Dir[3]; 
+	//end of not directly from setbranchaddress
+	//
 	//config
 	int RunID; //from run1 to run10
 	int EventID;
@@ -262,8 +352,8 @@ public:
 	int numode;// 1 FHC, 0 RHC
 	int accum_level;
 //	int cut0, cut1, cut2, cut3, cut4, cut5, cut6, cut7, cut8, cut9, cut10, cut11; // add more later
-//	int NValidParticles;
-//	int NValidTracks;
+	int NValidParticles;
+	int NValidTracks;
 //	int NValidShowers;
 	int HSMTrackLayers;
 	int HSMShowerLayers;
@@ -277,10 +367,9 @@ public:
 	float ShowerEDepFraction;
 	double AllParTotEDepInEvent;
 
-	//not directly from setbranchadress
-	double invariantmass;
-	double twoshowerEDepfrac;
-	double cospi0thetaz;
+	//
+	int LongestTrackLayers_atTrackReconStage;
+	double LongestTrackCostheta_atTrackReconStage;
 	
 	//xsec para
 	TGraph* spline_MaCCQE;
@@ -330,7 +419,7 @@ public:
         _inputMCfilename = inputMCfile;
 //        if(_inputMCfilename.find(".list")!=std::string::npos||_inputMCfilename.find(".root")!=std::string::npos){
         if(_inputMCfilename.find(".list")==std::string::npos&&_inputMCfilename.find(".root")==std::string::npos){
-            std::cerr<<"the input format is invalid"<<std::endl;
+            std::cerr<<"the MC input format is invalid"<<std::endl;
 			exit(0);
 		}
 		_inputXsecFSIRWfilename = inputXsecFSIRWfile;
@@ -392,9 +481,27 @@ protected:
 	double GetKineticEnergy(double momentum, int pdg)
 	{
 		std::unordered_map<int, double> pdgvsmass{{11, 0.511}, {13, 105.65}, {22, 0}, {111, 134.976}, {211, 139.57}, {2212, 938.271}};
-		if(pdgvsmass.find(pdg)==pdgvsmass.end())
+		if(pdgvsmass.find(std::abs(pdg))==pdgvsmass.end())
 			return 0;
+		pdg = std::abs(pdg); //added on 05/11/2021
 		return TMath::Sqrt(TMath::Power(momentum,2)+TMath::Power(pdgvsmass[pdg],2))-pdgvsmass[pdg];
+	}
+
+	std::pair<int, int> GetNTruePions()
+	{
+		int ntruepi0 = 0;
+		int ntruepicharge = 0;
+
+		for(int it=0; it<iIncrementTruePars; it++)
+		{
+			if(true_ParticleID[it]!=true_ParticlePrimaryID[it])
+				continue;//skip non-primary particles
+			if(true_ParticlePDG[it]==111)
+				ntruepi0++;
+			else if(true_ParticlePDG[it]==211||true_ParticlePDG[it]==-211)
+				ntruepicharge++;
+		}
+		return std::make_pair(ntruepi0, ntruepicharge);
 	}
 	// ************ end tmp *************** //
 
@@ -545,6 +652,7 @@ protected:
 		_defaultTree->SetBranchAddress("ShowerMedianWidth", &ShowerMedianWidth);
 		_defaultTree->SetBranchAddress("ShowerEDepFraction", &ShowerEDepFraction);
 		_defaultTree->SetBranchAddress("AllParTotEDepInEvent", &AllParTotEDepInEvent);
+		_defaultTree->SetBranchAddress("pi0Utils_HSMShowerMom", &pi0Utils_HSMShowerMom);
 		_defaultTree->SetBranchAddress("iIncrementPar", &iIncrementPar);
 		_defaultTree->SetBranchAddress("particleDim", &particleDim);
 		_defaultTree->SetBranchAddress("parMom", &parMom);
@@ -560,6 +668,12 @@ protected:
 		_defaultTree->SetBranchAddress("true_ParticlePrimaryID", &true_ParticlePrimaryID);
 		_defaultTree->SetBranchAddress("true_ParticleDir", &true_ParticleDir);
 		_defaultTree->SetBranchAddress("true_ParStartPosi", &true_ParStartPosi);
+
+		if(_type==2)
+		{
+			_defaultTree->SetBranchAddress("LongestTrackLayers_atTrackReconStage", &LongestTrackLayers_atTrackReconStage);
+			_defaultTree->SetBranchAddress("LongestTrackCostheta_atTrackReconStage", &LongestTrackCostheta_atTrackReconStage);
+		}
 	}
 
 private:
@@ -597,7 +711,7 @@ private:
 	float TrueVPositionX;
 	float TrueVPositionY;
 	float TrueVPositionZ;
-	double TrueNeutrinoEnergy;
+	float TrueNeutrinoEnergy;
 	double totTrueParKin; //total kinetic energy of all primary charged particles and primary photons
 //	double trueQ2;
 		
@@ -625,11 +739,12 @@ private:
 	float ShowerEDepFraction;
 	double AllParTotEDepInEvent;
 
-//    //not directly from setbranchadress
-//    int maxEDepShowerIndex;
-//    int secondmaxEDepShowerIndex;
+	//
+	int LongestTrackLayers_atTrackReconStage;
+	double LongestTrackCostheta_atTrackReconStage;
 
 	//reco pars
+	double pi0Utils_HSMShowerMom;
 	int iIncrementPar;
     int particleDim[100];
 //	int parLayers[100];
@@ -695,11 +810,11 @@ public:
 
 	void GetAllSamples()
 	{
+		if(_inputnumuccbkcsMCfilename!=""&&_inputnumuccbkcsXsecFSIRWfilename!="")
+			GeNumuControlSample();
 		GetSignalEnrichedSample();
 		if(_inputncbkcsMCfilename!=""&&_inputncbkcsXsecFSIRWfilename!="")
 			GetNCBKControlSample();
-		if(_inputnumuccbkcsMCfilename!=""&&_inputnumuccbkcsXsecFSIRWfilename!="")
-			GeNumuControlSample();
 	}
 
 	void GetSignalEnrichedSample()
