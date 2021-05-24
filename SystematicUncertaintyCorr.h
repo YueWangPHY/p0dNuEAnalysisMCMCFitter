@@ -8,13 +8,15 @@ class SystematicUncertaintyCorr{
 
 public:
 	SystematicUncertaintyCorr(){
-		_debug = 0;
-		_debugweight = 0;//0;//1;
+		_debug = 0;//1;
+		_debugweight = 0;//1;
 	}
 	~SystematicUncertaintyCorr(){}
 
 	double ReweightEvent(MCEvent& corrected, const MCEvent& nominalevt, const std::vector<double>& param) const;
 	double ReweightEvent(MCEvent& corrected, const MCEvent& nominalevt, const std::vector<double>& param, int sampleid) const;
+	double ReweightNC1pi0CSEvent(MCEvent& corrected, const MCEvent& nominalevt, const std::vector<double>& param) const;
+	double ReweightNumuCCCSEvent(MCEvent& corrected, const MCEvent& nominalevt, const std::vector<double>& param) const;
 
 	double CalReconShowerEnergyWithSyst(const MCEvent& nominalevt, const std::vector<double>& param) const;
 	double CalShowerMedianWidthWithSyst(const MCEvent& nominalevt, const std::vector<double>& param) const;
@@ -37,6 +39,11 @@ public:
  *                         weight *= CalcSignalEventWeight(evt, param);
  *other det sys other than SMW and SCF
  */                 
+	//NC1pi0 CS alone
+	double CalInvariantMassWithSyst(const MCEvent& nominalevt, const std::vector<double>& param) const;
+	double CalTwoShowerChargeRatioWithSyst(const MCEvent& nominalevt, const std::vector<double>& param) const;
+	double CalcMuDecayEffCorrectionWeight(const MCEvent& nominalevt, const std::vector<double>& param) const;
+	double CalcMuDecayFakeRateCorrectionWeight(const MCEvent& nominalevt, const std::vector<double>& param) const;
 
 private:
 	FitParams fitparam;
