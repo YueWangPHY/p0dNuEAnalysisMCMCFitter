@@ -23,6 +23,9 @@ p0dNuEAnalysisLikelihood::p0dNuEAnalysisLikelihood()
 	//added on 05/23/2021
 	_LayerCut[0] = 22; _LayerCut[1] = 24; _LayerCut[3] = 18; _LayerCut[4] = 18;	
 
+	N_water = (Mass_water*21.0/25.0)*1000.0/MolarMassWater*Na;
+	std::cout<<"N_water = "<<N_water<<std::endl;
+
 //	for(int i=0; i<_NConfigs; i++)
 	for(int i=0; i<_curNConfigs; i++)
 	{
@@ -56,6 +59,12 @@ p0dNuEAnalysisLikelihood::p0dNuEAnalysisLikelihood()
 //		MC_numuCCDISMultiPionSideband_TrueTotKinEnergy[i] = 0;
 //		MC_numuCCDISMultiPionSideband_Signal_TrueTotKinEnergy[i] = 0;
 //		MC_numuCCDISMultiPionSideband_Background_TrueTotKinEnergy[i] = 0;
+
+		MCOrignalTruth_allconfigs[i] = 0;
+
+		totalflux[i] = 0;
+		fluxhisto[i] = new TH1D(("fluxhist_config"+std::to_string(i)).c_str(), ("fluxhist_config"+std::to_string(i)).c_str(), Correction.fitparam.fluxbins_nd_numode_nue->GetNbins(), Correction.fitparam.fluxbins_nd_numode_nue->GetXbins()->GetArray());
+//		fluxhisto[i] = 0;
 	}	
 
     fParamNames.clear();
@@ -70,8 +79,22 @@ p0dNuEAnalysisLikelihood::p0dNuEAnalysisLikelihood()
 double p0dNuEAnalysisLikelihood::operator()(const std::vector<double>& fCurrParams)
 {
     ResetMCHistograms();
+	//check whether ksigwt_nueCC_onwater_bin1 is neg or not and set up for it just in case when nonwaterbin1==0, neg won't be recog
+	if(Correction.fitparam.sigwt_params)
+	{
+		int idx_ksigwt_nueCC_onwater_bin1 = Correction.fitparam.GetParamIndexFromExactName("ksigwt_nueCC_onwater_bin1");
+		if(fCurrParams[idx_ksigwt_nueCC_onwater_bin1]<0||fCurrParams[idx_ksigwt_nueCC_onwater_bin1]>fUpperBound[idx_ksigwt_nueCC_onwater_bin1])
+		{
+			std::cout<<"ksigwt_nueCC_onwater_bin1 weight = "<<fCurrParams[idx_ksigwt_nueCC_onwater_bin1]<<" which is either negative or larger than upper bound"<<std::endl;
+			return -2e+38;
+		}
+	}
+
     if(!FillMCHistograms(fCurrParams))//if there are negative weights
+	{
+		std::cout<<"neg weight"<<std::endl;
 		return -2e+38;
+	}
 
     double logLikelihood = 0.0;
 
@@ -208,8 +231,8 @@ double p0dNuEAnalysisLikelihood::operator()(const std::vector<double>& fCurrPara
 	  	{
 			if(fParamNames[j].find("ksigwt")!=std::string::npos)
 				continue;
-	    	llh_syst += (fCurrParams[i]-fPriorParams[i])*(fCurrParams[j]-fPriorParams[j])*(*covarianceI)(i,j);
-//			llh_syst += (fCurrParams[i]-fInitParams[i])*(fCurrParams[j]-fInitParams[j])*(*covarianceI)(i,j);	    
+//	    	llh_syst += (fCurrParams[i]-fPriorParams[i])*(fCurrParams[j]-fPriorParams[j])*(*covarianceI)(i,j);
+			llh_syst += (fCurrParams[i]-fInitParams[i])*(fCurrParams[j]-fInitParams[j])*(*covarianceI)(i,j);	    
 //			if((*covarianceI)(i,j) != 0){
 //				std::cout << " Prop[i] " <<  fCurrParams[i] << " Prior [i] " << fPriorParams[i] << " diff : " << -fCurrParams[i] + fPriorParams[i] << std::endl;
 //				std::cout << " Prop[j] " << fCurrParams[j] << " Prior [j] " << fPriorParams[j] << " diff : " << -fCurrParams[j] + fPriorParams[j] << std::endl;
@@ -237,7 +260,7 @@ double p0dNuEAnalysisLikelihood::operator()(const std::vector<double>& fCurrPara
 }
 
 
-void p0dNuEAnalysisLikelihood::Init(int nconfigs, std::vector<std::string>& mcWaterinFHC, std::vector<std::string>& mcSplineWaterinFHC, double mcPOTWaterin, std::vector<std::string>& mcWateroutFHC, std::vector<std::string>& mcSplineWateroutFHC, double mcPOTWaterout, std::vector<std::string>& dataWaterinFHC, double dataPOTWaterin, std::vector<std::string>& dataWateroutFHC, double dataPOTWaterout)
+void p0dNuEAnalysisLikelihood::Init(int nconfigs, std::vector<std::string>& mcWaterinFHC, std::vector<std::string>& mcSplineWaterinFHC, double mcPOTWaterin, std::vector<std::string>& mcWateroutFHC, std::vector<std::string>& mcSplineWateroutFHC, double mcPOTWaterout, std::vector<std::string>& dataWaterinFHC, double dataPOTWaterin, std::vector<std::string>& dataWateroutFHC, double dataPOTWaterout, std::string nominalMCOrignalSigWaterIn, std::string nominalSplineOrignalSigWaterIn, std::string nominalMCOrignalSigWaterOut, std::string nominalSplineOrignalSigWaterOut)
 //void p0dNuEAnalysisLikelihood::Init(int nconfigs, std::string mcWaterinFHC, double mcWaterinFHCPOT, std::string mcWateroutFHC, double mcWateroutFHCPOT, std::string mcWaterinRHC, double mcWaterinRHCPOT, std::string mcWateroutRHC, double mcWateroutRHCPOT, std::string dataWaterinFHC, double dataWaterinFHCPOT,  std::string dataWateroutFHC, double dataWateroutFHCPOT,  std::string dataWaterinRHC, double dataWaterinRHCPOT, std::string dataWateroutRHC, double dataWateroutRHCPOT,  std::string splineWaterinFHC, std::string splineWateroutFHC, std::string splineWaterinRHC, std::string splineWateroutRHC)
 {
 	std::cout<<"In p0dNuEAnalysisLikelihood::Init"<<std::endl;
@@ -341,6 +364,11 @@ void p0dNuEAnalysisLikelihood::Init(int nconfigs, std::vector<std::string>& mcWa
 		MCSamples_allConfigs[i] = new MCSimulation(mcfiles[0], mcsplinefiles[0], mcfiles[1], mcsplinefiles[1], mcfiles[2], mcsplinefiles[2]); //new MCSimulation(mcinputnames[i], mcsplinenames[i]);
 		MCSamples_allConfigs[i]->GetAllSamples();
 //		MCPOT[i] = MCSamples_allConfigs[i]->GetPOT(); //need to put here???
+
+		std::string truthfile = i==0? nominalMCOrignalSigWaterIn : nominalMCOrignalSigWaterOut;
+		std::string truthspline = i==0? nominalSplineOrignalSigWaterIn : nominalSplineOrignalSigWaterOut;
+		MCOrignalTruth_allconfigs[i] = new MCTruthUnit(truthfile, truthspline);
+		MCOrignalTruth_allconfigs[i] -> GetAllSamples();
 	}
 
 	std::cout<<"end data reading"<<std::endl;
@@ -527,9 +555,9 @@ void  p0dNuEAnalysisLikelihood::FillNominalMCHistograms()
 				if(reweightevt.ShowerEDepFraction<_SCFCut[ic]&&reweightevt.twoshowerEDepfrac>0.85&&reweightevt.invariantmass>60&&reweightevt.invariantmass<200)
 				{
 					MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy[ic]->Fill(reweightevt.invariantmass);//ReconShowerEnergy);//, weight);
-					if(reweightevt.isSignal==1)
+					if(std::abs(reweightevt.reactionCode)>30&&reweightevt.NtruePi0==1)
 						MC_NCResonantPi0Sideband_Signal_ReconShowerVisibleEnergy[ic]->Fill(reweightevt.invariantmass);//ReconShowerEnergy);//, weight);
-					if(reweightevt.isSignal==0)
+					else
 						MC_NCResonantPi0Sideband_Background_ReconShowerVisibleEnergy[ic]->Fill(reweightevt.invariantmass);//ReconShowerEnergy);//, weight);
 				}
 
@@ -543,9 +571,9 @@ void  p0dNuEAnalysisLikelihood::FillNominalMCHistograms()
 				if(reweightevt.LongestTrackLayers_atTrackReconStage>23)
 				{
 					MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy[ic]->Fill(TMath::ACos(reweightevt.LongestTrackCostheta_atTrackReconStage));//, weight);
-					if(reweightevt.isSignal==1)
+					if(std::abs(reweightevt.reactionCode)<30&&std::abs(reweightevt.NeutrinoPDG)==14)
 						MC_numuCCDISMultiPionSideband_Signal_ReconShowerVisibleEnergy[ic]->Fill(TMath::ACos(reweightevt.LongestTrackCostheta_atTrackReconStage));
-					if(reweightevt.isSignal==0)
+					else
 						MC_numuCCDISMultiPionSideband_Background_ReconShowerVisibleEnergy[ic]->Fill(TMath::ACos(reweightevt.LongestTrackCostheta_atTrackReconStage));
 				}
 			}
@@ -633,9 +661,9 @@ bool p0dNuEAnalysisLikelihood::FillMCHistograms(const std::vector<double>& param
 						return false;
 					}
 					MC_NCResonantPi0Sideband_ReconShowerVisibleEnergy[ic]->Fill(reweightevt.invariantmass, weight);//ReconShowerEnergy, weight);
-					if(reweightevt.isSignal==1)
+					if(std::abs(reweightevt.reactionCode)>30&&reweightevt.NtruePi0==1)
 						MC_NCResonantPi0Sideband_Signal_ReconShowerVisibleEnergy[ic]->Fill(reweightevt.invariantmass, weight);//ReconShowerEnergy, weight);
-					if(reweightevt.isSignal==0)
+					else
 						MC_NCResonantPi0Sideband_Background_ReconShowerVisibleEnergy[ic]->Fill(reweightevt.invariantmass, weight);//ReconShowerEnergy, weight);
 				}
 
@@ -655,9 +683,9 @@ bool p0dNuEAnalysisLikelihood::FillMCHistograms(const std::vector<double>& param
 						return false;
 					}
 					MC_numuCCDISMultiPionSideband_ReconShowerVisibleEnergy[ic]->Fill(TMath::ACos(reweightevt.LongestTrackCostheta_atTrackReconStage), weight);
-					if(reweightevt.isSignal==1)
+					if(std::abs(reweightevt.reactionCode)<30&&std::abs(reweightevt.NeutrinoPDG)==14)
 						MC_numuCCDISMultiPionSideband_Signal_ReconShowerVisibleEnergy[ic]->Fill(TMath::ACos(reweightevt.LongestTrackCostheta_atTrackReconStage), weight);
-					if(reweightevt.isSignal==0)
+					else
 						MC_numuCCDISMultiPionSideband_Background_ReconShowerVisibleEnergy[ic]->Fill(TMath::ACos(reweightevt.LongestTrackCostheta_atTrackReconStage), weight);
 				}
 			}
@@ -987,6 +1015,12 @@ THStack* p0dNuEAnalysisLikelihood::GetSignalSampleStack(int ic, const std::vecto
 		else
 			th1d_reconshowerenergy_NueReaction[11]->Fill(reweightevt.ReconShowerEnergy, weight);
 	}
+	std::cout<<"Print signal sample in reaction:"<<std::endl;
+	for(int i=0; i<NUEREAC; i++)
+	{
+		std::cout<<NueReaction_types[i]<<" "<<th1d_reconshowerenergy_NueReaction[i]->GetEntries()<<std::endl;;
+		th1d_reconshowerenergy_NueReaction[i]->Scale(dataPOT[ic]/MCPOT[ic]);
+	}
 
 	///
 	TCanvas* c1 = new TCanvas("c1", "c1");
@@ -1024,12 +1058,6 @@ THStack* p0dNuEAnalysisLikelihood::GetSignalSampleStack(int ic, const std::vecto
 	for(int ib=1; ib<nbins+1; ib++)
 		std::cout<<" "<<totcnts[ib-1];
 	std::cout<<std::endl;
-
-	std::cout<<"Print signal sample in topology:"<<std::endl;
-	for(int i=0; i<NUEREAC; i++)
-	{
-		std::cout<<NueReaction_types[i]<<" "<<th1d_reconshowerenergy_NueReaction[i]->GetEntries()<<std::endl;;
-	}
 
 //	for(int i=0; i<4; i++)
 //	{
@@ -1134,6 +1162,7 @@ THStack* p0dNuEAnalysisLikelihood::GetNCBKControlSampleStack(int ic, const std::
 	for(int i=0; i<NTOPOLOGY; i++)
 	{
 		std::cout<<Topology_types[i]<<" "<<th1d_reconinvariantmass[i]->GetEntries()<<std::endl;
+		th1d_reconinvariantmass[i]->Scale(dataPOT[ic]/MCPOT[ic]);
 	}
 
     delete emptyMCSim;
@@ -1303,14 +1332,232 @@ THStack* p0dNuEAnalysisLikelihood::GetNumuControlSampleStack(int ic, const std::
 	for(int i=0; i<NREAC; i++)
 	{
 		std::cout<<Reaction_types[i]<<" "<<th1d_recontrackangle[i]->GetEntries()<<std::endl;;
+		th1d_recontrackangle[i]->Scale(dataPOT[ic]/MCPOT[ic]);
 	}
 
-    delete emptyMCSim;
 	delete templatehist;
+    delete emptyMCSim;
 
 	return hs_recontrackangle;
 }
 
 
+void p0dNuEAnalysisLikelihood::GetTotalFlux()
+{
+	TFile* f = new TFile("/gpfs/home/yuewang6/ND280Software/p0dNuEAnalysisFitter_5/Inputs/tuned13av7p1/run4/nd5_tuned13av7p1_13anom_run4_numode_fine.root", "READ"); //using run4 for now. need to change to for all runs later  //use fine becuae nue flux binning in nd5_tuned13av7p1_13anom_run4_numode.root doesn;t not align with flux_cov at 2.5GeV so to make it convenient to rebin to bins of flux_cov
+	TH1D* nueflux = (TH1D*) f->Get("enu_nd5_tuned13a_nue");
+	double totnue = 0;
+	int nbins = nueflux->GetXaxis()->GetNbins();
+	for(int i=1; i<nbins+1; i++)//Do NOT include under and overflow which should be 0 though
+		totnue += nueflux->GetBinContent(i)*(nueflux->GetBinWidth(i)*1000.0/50.0);// convert with from GeV to MEV and then divided by 50MeV
+	for(int i=0; i<_curNConfigs; i++)
+	{
+		if(MCPOT[i]<=0.001)//==0
+			throw std::runtime_error("0 MCPOT");
+//		else
+		totalflux[i] = totnue*MCPOT[i]/(1.0e+21);
+
+//		fluxhisto[i] = new TH1D(("fluxhist_config"+std::to_string(i)).c_str(), ("fluxhist_config"+std::to_string(i)).c_str(), Correction.fitparam.fluxbins_nd_numode_nue->GetNbins(), Correction.fitparam.fluxbins_nd_numode_nue->GetXbins()->GetArray());
+		for(int ib=1; ib<nbins+1; ib++)
+		{
+			fluxhisto[i] -> Fill(nueflux->GetBinCenter(ib), (MCPOT[i]/(1.0e+21))*(nueflux->GetBinContent(ib))*(nueflux->GetBinWidth(ib))*1000.0/50.0);
+		}
+
+		std::cout<<"total flux at configuration "<<i<<" = "<<totalflux[i]<<std::endl;
+		std::cout<<"fluxhisto at config "<<i<<" has flux "<<fluxhisto[i]->Integral()<<" with nbins = "<<fluxhisto[i]->GetXaxis()->GetNbins()<<std::endl;;
+		
+		if(Correction.fitparam.flux_params&&std::abs(fluxhisto[i]->Integral()-totalflux[i])>0.001)
+			throw std::runtime_error("Different total flux before and after rebinning");
+	}
+
+
+	delete nueflux;
+	delete f;
+}
+
+std::vector<double> p0dNuEAnalysisLikelihood::GetXsecwfixflux(const std::vector<double>& params)
+{
+	double Ntweight = 1.0;
+	if(Correction.fitparam.det_params)
+		Ntweight = params[Correction.fitparam.GetParamIndexFromExactName("kDet_MassOnWater")];
+	else //gaussian from N_water
+		Ntweight = 1.0 + gRandom->Gaus()*1.0/TMath::Sqrt(N_water);
+
+	TH1D* th1d_onwatersigs[_curNConfigs];
+//	TH1D* th1d_notwatersigs[_curNConfigs]; //half of _curNConfigs actually
+
+	MCTruthUnit* emptyTruthUnit = new MCTruthUnit();
+	TH1D* templatehist = emptyTruthUnit->GetTemplateHistogram();
+	for(int i=0; i<_curNConfigs; i++)
+	{
+		//gcc4.8 doesn't have std::to_string. to make sure this program can be compile in both gcc4.8 and gcc6, use stringstream below
+		std::stringstream sstmp;
+		sstmp<<i;
+		th1d_onwatersigs[i] = (TH1D*) templatehist->Clone(("onwatersig_config"+sstmp.str()).c_str());//(TH1D*)  MCOrignalTruth_allconfigs[i]->GetTemplateHistogram()->Clone(("onwatersig_config"+sstmp.str()).c_str());
+//		std::cout<<"th1d_onwatersigs at config "<<i<<" has nbins = "<<th1d_onwatersigs[i]->GetXaxis()->GetNbins()<<std::endl;
+//		th1d_notwatersigs[i] = MCOrignalTruth_allconfigs[i]->GetTemplateHistogram()->Clone(("onwatersig_config"+sstmp.str()).c_str());
+		int nonwatersigs = MCOrignalTruth_allconfigs[i]->_sigonwatersample.size();
+//		int nnotwatersigs = MCOrignalTruth_allconfigs[i]->_signotwatersample.size();
+//		if(i%2==1&&nonwatersigs!=0)
+//			throw std::runtime_error("water-out config has non-zero on water signals");
+		if(i%2==1)
+			continue;
+		for(int ie = 0; ie<nonwatersigs; ie++)
+		{
+			double weight = 1.0;
+			if(Correction.fitparam.xsec_params)
+				weight *= Correction.CalcXSecFSISystWeightFromT2KReweight(MCOrignalTruth_allconfigs[i]->_sigonwatersample[ie], params);
+			if(Correction.fitparam.flux_params)
+				weight *= Correction.CalcFluxSystWeight(MCOrignalTruth_allconfigs[i]->_sigonwatersample[ie], params);
+			th1d_onwatersigs[i]->Fill(MCOrignalTruth_allconfigs[i]->_sigonwatersample[ie].totTrueParKin, weight);
+		}
+//		for(int ib=1; ib<th1d_onwatersigs[i]->GetNbinsX()+1; ib++)
+//			std::cout<<"th1d_onwatersigs at config "<<i<<" and bin "<<ib<<" has "<<th1d_onwatersigs[i]->GetBinContent(ib)<<std::endl;
+//		for(int ie = 0; ie<nnotwatersigs; ie++)
+//		{
+//			double weight = 1.0;
+//			if(Correction.fitparam.xsec_params)
+//				weight *= Correction.CalcXSecFSISystWeightFromT2KReweight(MCOrignalTruth_allconfigs[i]->_signotwatersample[ie], params);
+//			if(Correction.fitparam.flux_params)
+//				weight *= Correction.CalcFluxSystWeight(MCOrignalTruth_allconfigs[i]->_signotwatersample[ie], params);
+//			th1d_notwatersigs[i]->Fill(MCOrignalTruth_allconfigs[i]->_signotwatersample[ie].totTrueParKin, weight);
+//		}
+	}
+
+	std::vector<double> xsecs;
+	for(int i=0; i<_curNConfigs; i++)
+	{
+		if(i%2==1)//water-out config
+			continue;
+		if(totalflux[i]<0.001)
+			throw std::runtime_error("no total flux");
+		int nbins = th1d_onwatersigs[i]->GetXaxis()->GetNbins();	
+		for(int ib=1; ib<nbins+1; ib++)
+		{
+			std::string name = "ksigwt_nueCC_onwater_bin" + std::to_string(ib);
+			int idx = Correction.fitparam.GetParamIndexFromExactName(name);
+			double currxsec = params[idx]*th1d_onwatersigs[i]->GetBinContent(ib)/(totalflux[i]*N_water*Ntweight);
+			currxsec *= 1.0e+38;
+			xsecs.push_back(currxsec); //in the unit of 1e-38
+			std::cout<<"xsec with fix flux in config "<<i<<" at bin "<<ib<<" = "<<currxsec<<std::endl;
+		}
+	}
+
+	for(int i=0; i<_curNConfigs; i++)
+	{
+		if(th1d_onwatersigs[i])
+			delete th1d_onwatersigs[i];
+//		if(th1d_notwatersigs[i])
+//			delete th1d_notwatersigs[i];
+	}
+	delete templatehist;
+	delete emptyTruthUnit;
+
+	return xsecs;
+
+}
+
+std::vector<double> p0dNuEAnalysisLikelihood::GetXsecwReweightflux(const std::vector<double>& params)
+{
+	if(!Correction.fitparam.flux_params)
+		return GetXsecwfixflux(params);
+	double Ntweight = 1.0;
+	if(Correction.fitparam.det_params)
+		Ntweight = params[Correction.fitparam.GetParamIndexFromExactName("kDet_MassOnWater")];
+	else //gaussian from N_water
+		Ntweight = 1.0 + gRandom->Gaus()*1.0/TMath::Sqrt(N_water);
+	
+	//reweight flux
+	double reweighttotalflux[_curNConfigs];
+	//init
+	for(int i=0; i<_curNConfigs; i++)
+		reweighttotalflux[i] = 0;
+	//end of init
+	for(int i=0; i<_curNConfigs; i++)
+	{
+		int nfluxbins = fluxhisto[i]->GetXaxis()->GetNbins();
+//		std::cout<<"nfluxbins = "<<nfluxbins<<std::endl;
+		for(int ib=1; ib<nfluxbins+1; ib++)
+		{
+			std::string name = "nd5_numode_nue_bin"+std::to_string(ib);
+			int idx = Correction.fitparam.GetParamIndexFromExactName(name);
+			reweighttotalflux[i] += fluxhisto[i]->GetBinContent(ib)*params[idx];
+			std::cout<<"flux at bin "<<ib<<" with weight = "<<params[idx]<<std::endl;
+		}
+//		std::cout<<"reweighttotalflux: "<<reweighttotalflux[i]<<std::endl;
+	}
+
+	//end of reweight flux
+	
+	TH1D* th1d_onwatersigs[_curNConfigs];
+
+	MCTruthUnit* emptyTruthUnit = new MCTruthUnit();
+	TH1D* templatehist = emptyTruthUnit->GetTemplateHistogram();
+//	TH1D* th1d_notwatersigs[_curNConfigs]; //half of _curNConfigs actually
+	for(int i=0; i<_curNConfigs; i++)
+	{
+		//gcc4.8 doesn't have std::to_string. to make sure this program can be compile in both gcc4.8 and gcc6, use stringstream below
+		std::stringstream sstmp;
+		sstmp<<i;
+		th1d_onwatersigs[i] = (TH1D*) templatehist->Clone(("onwatersig_config"+sstmp.str()).c_str());//(TH1D*)  MCOrignalTruth_allconfigs[i]->GetTemplateHistogram()->Clone(("onwatersig_config"+sstmp.str()).c_str());
+//		std::cout<<"th1d_onwatersigs at config "<<i<<" has nbins = "<<th1d_onwatersigs[i]->GetXaxis()->GetNbins()<<std::endl;
+//		th1d_notwatersigs[i] = MCOrignalTruth_allconfigs[i]->GetTemplateHistogram()->Clone(("onwatersig_config"+sstmp.str()).c_str());
+		int nonwatersigs = MCOrignalTruth_allconfigs[i]->_sigonwatersample.size();
+//		int nnotwatersigs = MCOrignalTruth_allconfigs[i]->_signotwatersample.size();
+//		if(i%2==1&&nonwatersigs!=0)
+//			throw std::runtime_error("water-out config has non-zero on water signals");
+		if(i%2==1)
+			continue;
+		for(int ie = 0; ie<nonwatersigs; ie++)
+		{
+			double weight = 1.0;
+			if(Correction.fitparam.xsec_params)
+				weight *= Correction.CalcXSecFSISystWeightFromT2KReweight(MCOrignalTruth_allconfigs[i]->_sigonwatersample[ie], params);
+			if(Correction.fitparam.flux_params)
+				weight *= Correction.CalcFluxSystWeight(MCOrignalTruth_allconfigs[i]->_sigonwatersample[ie], params);
+			th1d_onwatersigs[i]->Fill(MCOrignalTruth_allconfigs[i]->_sigonwatersample[ie].totTrueParKin, weight);
+		}
+//		for(int ie = 0; ie<nnotwatersigs; ie++)
+//		{
+//			double weight = 1.0;
+//			if(Correction.fitparam.xsec_params)
+//				weight *= Correction.CalcXSecFSISystWeightFromT2KReweight(MCOrignalTruth_allconfigs[i]->_signotwatersample[ie], params);
+//			if(Correction.fitparam.flux_params)
+//				weight *= Correction.CalcFluxSystWeight(MCOrignalTruth_allconfigs[i]->_signotwatersample[ie], params);
+//			th1d_notwatersigs[i]->Fill(MCOrignalTruth_allconfigs[i]->_signotwatersample[ie].totTrueParKin, weight);
+//		}
+	}
+
+	std::vector<double> xsecs;
+	for(int i=0; i<_curNConfigs; i++)
+	{
+		if(i%2==1)//water-out config
+			continue;
+		if(reweighttotalflux[i]<0.001)
+			throw std::runtime_error("no reweighttotalflux flux");
+		int nbins = th1d_onwatersigs[i]->GetXaxis()->GetNbins();	
+		for(int ib=1; ib<nbins+1; ib++)
+		{
+			std::string name = "ksigwt_nueCC_onwater_bin" + std::to_string(ib);
+			int idx = Correction.fitparam.GetParamIndexFromExactName(name);
+			double currxsec = params[idx]*th1d_onwatersigs[i]->GetBinContent(ib)/(reweighttotalflux[i]*N_water*Ntweight);
+			currxsec *= 1.0e+38;
+			xsecs.push_back(currxsec); //in the unit of 1e-38
+			std::cout<<"xsec with reweightted flux in config "<<i<<" at bin "<<ib<<" = "<<currxsec<<std::endl;
+		}
+	}
+
+	for(int i=0; i<_curNConfigs; i++)
+	{
+		if(th1d_onwatersigs[i])
+			delete th1d_onwatersigs[i];
+//		if(th1d_notwatersigs[i])
+//			delete th1d_notwatersigs[i];
+	}
+	delete templatehist;
+	delete emptyTruthUnit;
+	return xsecs;
+
+}
 
 

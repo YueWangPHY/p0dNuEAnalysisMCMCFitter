@@ -36,15 +36,15 @@ private:
 	double dataPOT[_NConfigs];
 
 	//below two added on 03/17/2021 for SaveNSignal
-	FitParams fitparam;
-	Binning binobject;
+//	FitParams fitparam;
+//	Binning binobject;
 
 public:
 	//***********Constructor***********//
 	p0dNuEAnalysisLikelihood();
 	double operator()(const std::vector<double>& fCurrParams);
 	
-	void Init(int nconfigs, std::vector<std::string>& mcWaterinFHC, std::vector<std::string>& mcSplineWaterinFHC, double mcPOTWaterin, std::vector<std::string>& mcWaterOutFHC, std::vector<std::string>& mcSplineWaterOutFHC, double mcPOTWaterout, std::vector<std::string>& dataWaterinFHC, double dataPOTWaterin, std::vector<std::string>& dataWaterOutFHC, double dataPOTWaterout);
+	void Init(int nconfigs, std::vector<std::string>& mcWaterinFHC, std::vector<std::string>& mcSplineWaterinFHC, double mcPOTWaterin, std::vector<std::string>& mcWaterOutFHC, std::vector<std::string>& mcSplineWaterOutFHC, double mcPOTWaterout, std::vector<std::string>& dataWaterinFHC, double dataPOTWaterin, std::vector<std::string>& dataWaterOutFHC, double dataPOTWaterout, std::string nominalMCOrignalSigWaterIn, std::string nominalSplineOrignalSigWaterIn, std::string nominalMCOrignalSigWaterOut, std::string nominalSplineOrignalSigWaterOut);
 //	void Init(int nconfigs, std::string mcWaterinFHC, double mcWaterinFHCPOT, std::string mcWateroutFHC, double mcWateroutFHCPOT, std::string mcWaterinRHC, double mcWaterinRHCPOT, std::string mcWateroutRHC, double mcWateroutRHCPOT, std::string dataWaterinFHC, double dataWaterinFHCPOT,  std::string dataWateroutFHC, double dataWateroutFHCPOT,  std::string dataWaterinRHC, double dataWaterinRHCPOT, std::string dataWateroutRHC, double dataWateroutRHCPOT,  std::string splineWaterinFHC, std::string splineWateroutFHC, std::string splineWaterinRHC, std::string splineWateroutRHC);
   
 	void ResetMCHistograms();
@@ -60,27 +60,33 @@ public:
 	THStack* GetNCBKControlSampleStack(int configid, const std::vector<double>& params, std::string differentiator="");
 	THStack* GetNumuControlSampleStack(int configid, const std::vector<double>& params, std::string differentiator="");
 
-	//added 03/17/2021, save the sigwt of onwater and not water
-	void SaveNSignal(const std::vector<double>& params, std::vector<double>& sigwtonwater, std::vector<double>& sigwtnotwater)
-	{
-		if(!fitparam.sigwt_params)
-			return ;
-		float signal_on_water = 0;
-		float signal_not_water = 0;
-		int N = binobject.GetNBins();
-		if(sigwtonwater.size()!=N)
-			sigwtonwater.resize(N, 0);
-		if(sigwtnotwater.size()!=N)
-			sigwtnotwater.resize(N, 0);
-		for(int i=1; i<N+1; i++)
-		{
-			std::string nameonwater = "ksigwt_nueCC_onwater_bin"+std::to_string(i);//+"_waterin_FHC";
-			sigwtonwater[i-1] = params[fitparam.GetParamIndexFromExactName(nameonwater)];
-			std::string namenotwater = "ksigwt_nueCC_notwater_bin"+std::to_string(i);//+"_waterin_FHC";
-			sigwtnotwater[i-1] = params[fitparam.GetParamIndexFromExactName(namenotwater)];
-		}
+	void GetTotalFlux();
+	std::vector<double> GetXsecwfixflux(const std::vector<double>& params);
+	std::vector<double> GetXsecwReweightflux(const std::vector<double>& params);
+//	std::vector<double> GetXsec(const std::vector<double>& params);
 
-	}
+	//added 03/17/2021, save the sigwt of onwater and not water
+	//not use, 2021/05/31
+//	void SaveNSignal(const std::vector<double>& params, std::vector<double>& sigwtonwater, std::vector<double>& sigwtnotwater)
+//	{
+//		if(!fitparam.sigwt_params)
+//			return ;
+//		float signal_on_water = 0;
+//		float signal_not_water = 0;
+//		int N = binobject.GetNBins();
+//		if(sigwtonwater.size()!=N)
+//			sigwtonwater.resize(N, 0);
+//		if(sigwtnotwater.size()!=N)
+//			sigwtnotwater.resize(N, 0);
+//		for(int i=1; i<N+1; i++)
+//		{
+//			std::string nameonwater = "ksigwt_nueCC_onwater_bin"+std::to_string(i);//+"_waterin_FHC";
+//			sigwtonwater[i-1] = params[fitparam.GetParamIndexFromExactName(nameonwater)];
+//			std::string namenotwater = "ksigwt_nueCC_notwater_bin"+std::to_string(i);//+"_waterin_FHC";
+//			sigwtnotwater[i-1] = params[fitparam.GetParamIndexFromExactName(namenotwater)];
+//		}
+//
+//	}
 //	//added 04/14/2021, save all params
 //	void SaveNSignal(const std::vector<double>& params, std::vector<double>& sigwtonwater, std::vector<double>& sigwtnotwater)
 //	{
@@ -138,6 +144,17 @@ public:
 //	TH1D* MC_numuCCDISMultiPionSideband_Signal_TrueTotKinEnergy[_NConfigs];
 //	TH1D* MC_numuCCDISMultiPionSideband_Background_TrueTotKinEnergy[_NConfigs];
 
+	// ******** Original Truth Signal ********//
+	MCTruthUnit* MCOrignalTruth_allconfigs[_NConfigs];	
+
+	double totalflux[_NConfigs];
+	TH1D* fluxhisto[_NConfigs];
+
+	double N_water;
+	const double Mass_water = 1902.0;//kg //calcualte based on watermass = 1902kg for now/ remember to skip last 4 layers when cal N_water
+	const double Na = 6.0221409e+23; //#/mol
+	const double MolarMassWater = 18.01528;//g/mol
+
 	// ******** Parameters ********//
 //	FitParams fitParams;
 	std::vector<std::string> fParamNames;
@@ -153,6 +170,8 @@ public:
 	// ******** corrections applied to each event ********//
 	SystematicUncertaintyCorr Correction;
 
+	//added on 05/31/2021
+	
 	double GetSMWCutValue(int iconfig) const {return _SMWCut[iconfig];}
 	double GetSCFCutValue(int iconfig) const {return _SCFCut[iconfig];}
 	
