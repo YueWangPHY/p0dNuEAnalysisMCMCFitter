@@ -218,6 +218,105 @@ private:
 	TH1D* numuCCDISMultiPionSideband_ReconShowerVisibleEnergy;
 };
 
+class TruthEvent
+{
+public:
+	TruthEvent(){
+		//init all variables
+		numode = 1;
+		isSignal = -1;
+		isOnWater = -1;
+//		isinFV = -1;
+//		InteractionTarget = -1;
+		reactionCode=0;
+		NeutrinoPDG=0;
+		TrueVPositionZ=-9999.0;
+		TrueNeutrinoEnergy = -1;
+		totTrueParKin = -1;
+
+		RunID = -1;
+		EventID = -1;
+
+		spline_MaCCQE = new TGraph();
+		spline_MaRES = new TGraph();
+		spline_CA5 = new TGraph();
+		spline_ISO_BKG               = new TGraph();  
+		spline_FSI_PI_ABS            = new TGraph();    
+		spline_FSI_CEX_LO            = new TGraph();       
+		spline_FSI_INEL_LO           = new TGraph();       
+		spline_FSI_CEX_HI            = new TGraph();         
+		spline_FSI_INEL_HI           = new TGraph();       
+		spline_FSI_PI_PROD           = new TGraph();
+		spline_NIWG_DIS_BY           = new TGraph();      
+		spline_NIWG_MultiPi_BY       = new TGraph();    
+		spline_NIWG_MultiPi_Xsec_AGKY= new TGraph();   
+		spline_NIWG2012a_nc1piE0     = new TGraph(); 
+		spline_NIWG2012a_nccohE0     = new TGraph();
+		spline_NIWG2012a_ncotherE0   = new TGraph(); 
+		spline_NIWG2012a_nc1pi0E0    = new TGraph();   
+	}
+
+	~TruthEvent()
+	{
+//		if(spline_MaCCQE)                       delete spline_MaCCQE;
+//		if(spline_MaRES)                        delete spline_MaRES;
+//		if(spline_CA5) 	                        delete spline_CA5;
+//		if(spline_ISO_BKG)                      delete  spline_ISO_BKG;
+//		if(spline_FSI_PI_ABS)                   delete  spline_FSI_PI_ABS;
+//		if(spline_FSI_CEX_LO)                   delete  spline_FSI_CEX_LO;
+//		if(spline_FSI_INEL_LO)                  delete  spline_FSI_INEL_LO;
+//		if(spline_FSI_CEX_HI)                   delete  spline_FSI_CEX_HI;
+//		if(spline_FSI_INEL_HI)                  delete  spline_FSI_INEL_HI;
+//		if(spline_FSI_PI_PROD)                  delete spline_FSI_PI_PROD;
+//		if(spline_NIWG_DIS_BY)                  delete  spline_NIWG_DIS_BY;
+//		if(spline_NIWG_MultiPi_BY)              delete  spline_NIWG_MultiPi_BY;
+//		if(spline_NIWG_MultiPi_Xsec_AGKY)       delete  spline_NIWG_MultiPi_Xsec_AGKY;
+//		if(spline_NIWG2012a_nc1piE0)            delete  spline_NIWG2012a_nc1piE0;
+//		if(spline_NIWG2012a_nccohE0)            delete  spline_NIWG2012a_nccohE0;
+//		if(spline_NIWG2012a_ncotherE0)          delete  spline_NIWG2012a_ncotherE0;
+//		if(spline_NIWG2012a_nc1pi0E0)           delete  spline_NIWG2012a_nc1pi0E0;
+
+	}
+
+	int numode ;//manully= 1;
+	int isSignal;//this variable is not define in microtree but later in local code based on our desire
+	int isOnWater; //1 yes, 0 no
+	int isinFV;
+//	int InteractionTarget;
+	int reactionCode;
+	int NeutrinoPDG;
+	float TrueVPositionZ;
+	float TrueNeutrinoEnergy;
+	double totTrueParKin;
+	//config
+	int RunID; //from run1 to run10
+	int EventID;
+
+	//xsec para
+	TGraph* spline_MaCCQE;
+	TGraph* spline_MaRES;
+	TGraph* spline_CA5;
+	
+	TGraph* spline_ISO_BKG;
+	TGraph* spline_FSI_PI_ABS;
+	TGraph* spline_FSI_CEX_LO;
+	TGraph* spline_FSI_INEL_LO;
+	TGraph* spline_FSI_CEX_HI;
+	TGraph* spline_FSI_INEL_HI;
+	TGraph* spline_FSI_PI_PROD;
+	TGraph* spline_NIWG_DIS_BY;
+	TGraph* spline_NIWG_MultiPi_BY;
+	TGraph* spline_NIWG_MultiPi_Xsec_AGKY;
+	TGraph* spline_NIWG2012a_nc1piE0;
+	TGraph* spline_NIWG2012a_nccohE0;
+	TGraph* spline_NIWG2012a_ncotherE0;
+	TGraph* spline_NIWG2012a_nc1pi0E0;
+
+	//... add more xxec parameters later if needed
+	//... add more fsi parameters later if needed
+	
+};
+
 
 class MCEvent
 {
@@ -358,7 +457,7 @@ public:
 	int HSMTrackLayers;
 	int HSMShowerLayers;
 //	int HSMShowerContainID;
-//	int nMuonDecayClusters;
+	int nMuonDecayClusters;
 	double WTCharges;
 	double ECalCharges;
 	double EDeposit; //=p0dparticle->momentum in oa for showers
@@ -404,6 +503,198 @@ public:
 //	bool isSignalwBDTdef();
 
 	void operator=(MCEvent &mcEvent);//const MCEvent &mcEvent); //when issues when filling arrays in mcEvent when using const
+};
+
+class MCTruthUnit: public Binning
+{
+public:
+	MCTruthUnit(){
+	}
+	MCTruthUnit(std::string inputMCfile, std::string inputXsecFSIRWfile)
+	{
+		std::cout<<"In Construction of MCTruthUnit using "<<inputMCfile<<" and "<<inputXsecFSIRWfile<<std::endl;
+		_inputMCfilename = inputMCfile;
+        if(_inputMCfilename.find(".list")==std::string::npos&&_inputMCfilename.find(".root")==std::string::npos){
+            std::cerr<<"the MC input format is invalid"<<std::endl;
+			exit(0);
+		}
+		_inputXsecFSIRWfilename = inputXsecFSIRWfile;
+		if(_inputXsecFSIRWfilename.find(".root")==std::string::npos){
+			std::cerr<<"the form of input XsecRW file is invalid"<<std::endl;
+			exit(0);
+		}
+		SettruthTree(); //technically. the truth tree shouldn't be affect by selections, so we can use the same file. but just to make it faster, use the preporocessed truth
+		SetXsecFSITree();
+		SettruthTreeBranchAddress();
+		SetXsecFSITreeBranchAddress();
+		_NMCEntries = _truthTree->GetEntries();
+		_NEntries_xsectree = _xsecfsiparaTree->GetEntries();
+		std::cout<<"_NMCETruthntries = "<<_NMCEntries<<std::endl;
+		std::cout<<"_NEntries_xsectree = "<<_NEntries_xsectree<<std::endl;
+		FillXsecFSITreeEventIDvsEntry();
+	}
+
+	virtual ~MCTruthUnit(){}
+
+	int FindEventIndexInXsecFSITreeFromDefaultIndex(int eventid);
+	void GetAllSamples();
+
+	std::vector<TruthEvent> _sigonwatersample;
+//	std::vector<TruthEvent> _signotwatersample;
+//	std::vector<TruthEvent> _notsigonwatersample;
+//	std::vector<TruthEvent> _notsignotwatersample;
+
+protected:
+	virtual void SettruthTree()
+	{
+		std::cout<<"MC SettruthTree"<<std::endl;
+		if(_inputMCfilename==""){
+			std::cerr<<"No input truth file!!!"<<std::endl;
+			exit(0);
+		}
+		_truthTree = new TChain("truth");
+		std::string fileName;
+		if(_inputMCfilename.find(".list")!=std::string::npos)
+		{
+			std::ifstream in(_inputMCfilename.c_str());
+			while(in>>fileName)
+			{
+			  if(in.fail()) break;
+			  _truthTree->AddFile(fileName.c_str());
+			}
+		}
+		else
+			_truthTree->AddFile(_inputMCfilename.c_str());
+	}
+	virtual void SetXsecFSITree()
+	{
+		std::cout<<"In MCTruthUnit, Set MC SetXsecFSITree"<<std::endl;
+		if(_inputXsecFSIRWfilename==""){
+			std::cerr<<"In MCTruthUnit, No input Xsec/FSI spline file!!!"<<std::endl;
+			exit(0);
+		}
+		TFile* fXsecRW = new TFile(_inputXsecFSIRWfilename.c_str(), "READ");
+		if(!fXsecRW){	
+			std::cerr<<"Cannot open XsecRW file"<<std::endl;
+			exit(0);
+		}
+		_xsecfsiparaTree = (TTree*) fXsecRW->Get("eventsReWeightsTree");
+		if(!_xsecfsiparaTree)
+			std::cerr<<"Cannot find T2K eventsReWeightsTree"<<std::endl;
+	}
+	virtual void SetXsecFSITreeBranchAddress()
+	{
+		std::cout<<"MC SetXsecFSITreeBranchAddress"<<std::endl;
+		spline_MaCCQE = new TGraph();
+		spline_MaRES = new TGraph();
+		spline_CA5 = new TGraph();
+		spline_ISO_BKG               = new TGraph();  
+		spline_FSI_PI_ABS            = new TGraph();    
+		spline_FSI_CEX_LO            = new TGraph();       
+		spline_FSI_INEL_LO           = new TGraph();       
+		spline_FSI_CEX_HI            = new TGraph();         
+		spline_FSI_INEL_HI           = new TGraph();       
+		spline_FSI_PI_PROD           = new TGraph();
+		spline_NIWG_DIS_BY           = new TGraph();      
+		spline_NIWG_MultiPi_BY       = new TGraph();    
+		spline_NIWG_MultiPi_Xsec_AGKY= new TGraph();   
+		spline_NIWG2012a_nc1piE0     = new TGraph(); 
+		spline_NIWG2012a_nccohE0     = new TGraph();
+		spline_NIWG2012a_ncotherE0   = new TGraph(); 
+		spline_NIWG2012a_nc1pi0E0    = new TGraph();   
+		//      spline_fsiinelLow_pi = new TGraph();
+
+		_xsecfsiparaTree->SetBranchAddress("MaCCQEGraph", &spline_MaCCQE);
+		_xsecfsiparaTree->SetBranchAddress("MaRESGraph",  &spline_MaRES);
+		_xsecfsiparaTree->SetBranchAddress("CA5Graph",    &spline_CA5);
+		_xsecfsiparaTree->SetBranchAddress("ISO_BKGGraph", &spline_ISO_BKG); 
+		_xsecfsiparaTree->SetBranchAddress("FSI_PI_ABSGraph", &spline_FSI_PI_ABS);
+		_xsecfsiparaTree->SetBranchAddress("FSI_CEX_LOGraph", &spline_FSI_CEX_LO             );
+		_xsecfsiparaTree->SetBranchAddress("FSI_INEL_LOGraph", &spline_FSI_INEL_LO            );
+		_xsecfsiparaTree->SetBranchAddress("FSI_CEX_HIGraph", &spline_FSI_CEX_HI             );
+		_xsecfsiparaTree->SetBranchAddress("FSI_INEL_HIGraph", &spline_FSI_INEL_HI            );
+		_xsecfsiparaTree->SetBranchAddress("FSI_PI_PRODGraph", &spline_FSI_PI_PROD            );
+		_xsecfsiparaTree->SetBranchAddress("NIWG_DIS_BYGraph", &spline_NIWG_DIS_BY            );
+		_xsecfsiparaTree->SetBranchAddress("NIWG_MultiPi_BYGraph", &spline_NIWG_MultiPi_BY        );
+		_xsecfsiparaTree->SetBranchAddress("NIWG_MultiPi_Xsec_AGKYGraph", &spline_NIWG_MultiPi_Xsec_AGKY );
+		_xsecfsiparaTree->SetBranchAddress("NIWG2012a_nc1piE0Graph", &spline_NIWG2012a_nc1piE0      );
+		_xsecfsiparaTree->SetBranchAddress("NIWG2012a_nccohE0Graph", &spline_NIWG2012a_nccohE0      );
+		_xsecfsiparaTree->SetBranchAddress("NIWG2012a_ncotherE0Graph", &spline_NIWG2012a_ncotherE0    );
+		_xsecfsiparaTree->SetBranchAddress("NIWG2012a_nc1pi0E0Graph", &spline_NIWG2012a_nc1pi0E0     );
+	}
+	virtual void FillXsecFSITreeEventIDvsEntry()
+	{
+		std::cout<<"In FillXsecFSITreeEventIDvsEntry"<<std::endl;
+		int eventID = -1;
+		int nentries = _xsecfsiparaTree->GetEntries();
+		_xsecfsiparaTree->SetBranchAddress("EventID", &eventID);
+		for(int ientry = 0; ientry<nentries; ientry++)
+		{
+			_xsecfsiparaTree->GetEntry(ientry);	
+			_EventIDvsEntry.insert({eventID, ientry});
+		}
+	}
+	virtual void SettruthTreeBranchAddress()
+	{
+		std::cout<<"In MCTruthUnit, SetdefaultTreeBranchAddress"<<std::endl;
+		_truthTree->SetBranchAddress("isTrueOnWater", &isOnWater);
+		_truthTree->SetBranchAddress("isSigbyBDT", &isSignal);//isSigwBDT);
+//		_truthTree->SetBranchAddress("targetpdg", &InteractionTarget);
+		_truthTree->SetBranchAddress("nu_truereac", &reactionCode);
+		_truthTree->SetBranchAddress("nu_pdg", &NeutrinoPDG);//nu_pdg is filled in baseAnalysis, there are some trueNeutrinoPDG for (proabably in numuCC/NC bacs) are not filled. similar for below
+		_truthTree->SetBranchAddress("nu_trueE", &TrueNeutrinoEnergy);
+		_truthTree->SetBranchAddress("truevtx_posZ", &TrueVPositionZ);
+		_truthTree->SetBranchAddress("totTrueParKin", &totTrueParKin);
+		_truthTree->SetBranchAddress("run", &RunID);
+		_truthTree->SetBranchAddress("EventID", &EventID);
+	}
+
+private: 
+    std::string _inputMCfilename;
+	std::string _inputXsecFSIRWfilename;
+
+	TChain* _truthTree;
+	TTree* _xsecfsiparaTree;
+
+	std::unordered_map<int, int> _EventIDvsEntry;
+
+	int _NMCEntries;
+	int _NEntries_xsectree;
+
+	int isSignal;//this variable is not define in microtree but later in local code based on our desire
+	int isOnWater; //1 yes, 0 no
+	int isinFV;
+//	int InteractionTarget;
+	int reactionCode;
+	int NeutrinoPDG;
+	float TrueVPositionZ;
+	float TrueNeutrinoEnergy;
+	double totTrueParKin;
+	//config
+	int RunID; //from run1 to run10
+	int EventID;
+
+	//xsec para
+	TGraph* spline_MaCCQE;
+	TGraph* spline_MaRES;
+	TGraph* spline_CA5;
+	
+	TGraph* spline_ISO_BKG;
+	TGraph* spline_FSI_PI_ABS;
+	TGraph* spline_FSI_CEX_LO;
+	TGraph* spline_FSI_INEL_LO;
+	TGraph* spline_FSI_CEX_HI;
+	TGraph* spline_FSI_INEL_HI;
+	TGraph* spline_FSI_PI_PROD;
+	TGraph* spline_NIWG_DIS_BY;
+	TGraph* spline_NIWG_MultiPi_BY;
+	TGraph* spline_NIWG_MultiPi_Xsec_AGKY;
+	TGraph* spline_NIWG2012a_nc1piE0;
+	TGraph* spline_NIWG2012a_nccohE0;
+	TGraph* spline_NIWG2012a_ncotherE0;
+	TGraph* spline_NIWG2012a_nc1pi0E0;
+
+
 };
 
 class MCSimUnit: public Binning

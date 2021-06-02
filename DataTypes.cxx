@@ -72,9 +72,9 @@ void DataSets::FillSignalHistograms(){
 		if(ievt%1000==0)
 			std::cout<<"In Data GetEntry "<<ievt<<std::endl;
 		_defaultTree->GetEntry(ievt);
-		if(accum_level>9&&HSMTrackLayers>13&&ShowerEDepFraction>0.9)
+		if(accum_level>9&&ShowerEDepFraction>0.9)
 		{
-			if((isWaterConfig==1&&ShowerMedianWidth<24)||(isWaterConfig==0&&ShowerMedianWidth<29))
+			if((isWaterConfig==1&&HSMTrackLayers>22&&ShowerMedianWidth<30)||(isWaterConfig==0&&HSMTrackLayers>24&&ShowerMedianWidth<32))
 				SS_ReconShowerVisibleEnergy->Fill(ReconShowerEnergy);
 		}
 	}
@@ -320,6 +320,7 @@ void MCEvent::operator=(MCEvent &mcEvent)
 	NValidTracks = mcEvent.NValidTracks;
 	HSMTrackLayers = mcEvent.HSMTrackLayers;
 	HSMShowerLayers = mcEvent.HSMShowerLayers;
+	nMuonDecayClusters = mcEvent.nMuonDecayClusters;
 	WTCharges = mcEvent.WTCharges;
 	ECalCharges = mcEvent.ECalCharges;
 	EDeposit = mcEvent.EDeposit;
@@ -434,7 +435,7 @@ bool MCSimUnit::GetMCEvent(MCEvent &mcEvent, int ientry)//, int type)
 		mcEvent.HSMTrackLayers = HSMTrackLayers;
 		mcEvent.HSMShowerLayers = HSMShowerLayers;
 //		mcEvent.HSMShowerContainID = HSMShowerContainID;
-//		mcEvent.nMuonDecayClusters = nMuonDecayClusters;
+		mcEvent.nMuonDecayClusters = nMuonDecayClusters;
 		mcEvent.WTCharges = WTCharges;
 		mcEvent.ECalCharges = ECalCharges;
 		mcEvent.EDeposit = EDeposit;
@@ -562,6 +563,69 @@ void MCSimUnit::GetMCEventsVect(MCEventsVect& mcEvents, int startindex, int endi
 	}
 }
 
+int MCTruthUnit::FindEventIndexInXsecFSITreeFromDefaultIndex(int eventid)
+{
+	if(_EventIDvsEntry.find(eventid)==_EventIDvsEntry.end())
+		throw std::runtime_error("In MCTruthUnit, event not in XsecFSI Tree");
+//		throw std::runtime_error("event %d not in XsecFSI Tree", eventid);
+	return _EventIDvsEntry[eventid];
+}
+
+void MCTruthUnit::GetAllSamples()
+{
+	std::cout<<"In MCTruthUnit GetAllSamples"<<std::endl;
+	for(int ientry=0; ientry<_NMCEntries; ientry++)
+	{
+		_truthTree->GetEntry(ientry);
+		if(!p0dNuEMCMCFitterUtils::isInFVRange(TrueVPositionZ, 2))//add this here just becuase the Z default FV in HL is diff from what is used here
+			continue;
+
+		TruthEvent truthevt;
+		int ievtinxsecfsi = FindEventIndexInXsecFSITreeFromDefaultIndex(EventID);// need to check based on the input data structure later whether their entries are one-to-one corresponding to the _defaultTree.
+		_xsecfsiparaTree->GetEntry(ievtinxsecfsi);
+
+		truthevt.isOnWater = isOnWater; 
+		truthevt.isSignal = isSignal;
+		truthevt.reactionCode = reactionCode;
+		truthevt.NeutrinoPDG = NeutrinoPDG;
+		truthevt.TrueVPositionZ = TrueVPositionZ;
+		truthevt.TrueNeutrinoEnergy = TrueNeutrinoEnergy;
+		truthevt.totTrueParKin = totTrueParKin;
+
+		truthevt.RunID = RunID; 
+		truthevt.EventID = EventID; 
+
+		truthevt.spline_MaCCQE = (TGraph*) spline_MaCCQE->Clone("MAQE");//"MaCCQE");
+		truthevt.spline_MaRES = (TGraph*) spline_MaRES->Clone("MARES");//"MaRES");
+		truthevt.spline_CA5 = (TGraph*) spline_MaRES->Clone("CA5");
+		truthevt.spline_ISO_BKG                = (TGraph*)  spline_ISO_BKG               ->Clone("ISO_BKG");             
+		truthevt.spline_FSI_PI_ABS             = (TGraph*)  spline_FSI_PI_ABS            ->Clone("FEFABS");  
+		truthevt.spline_FSI_CEX_LO             = (TGraph*)  spline_FSI_CEX_LO            ->Clone("FEFCX");   
+		truthevt.spline_FSI_INEL_LO            = (TGraph*)  spline_FSI_INEL_LO           ->Clone("FEFQE");    
+		truthevt.spline_FSI_CEX_HI             = (TGraph*)  spline_FSI_CEX_HI            ->Clone("FEFCXH");    
+		truthevt.spline_FSI_INEL_HI            = (TGraph*)  spline_FSI_INEL_HI           ->Clone("FEFQEH");       
+		truthevt.spline_FSI_PI_PROD            = (TGraph*)  spline_FSI_PI_PROD           ->Clone("FEFINEL");
+		truthevt.spline_NIWG_DIS_BY            = (TGraph*)  spline_NIWG_DIS_BY           ->Clone("CC_BY_DIS");  
+		truthevt.spline_NIWG_MultiPi_BY        = (TGraph*)  spline_NIWG_MultiPi_BY       ->Clone("CC_BY_MPi"); 
+		truthevt.spline_NIWG_MultiPi_Xsec_AGKY = (TGraph*)  spline_NIWG_MultiPi_Xsec_AGKY->Clone("CC_AGKY_Mult"); 
+		truthevt.spline_NIWG2012a_nc1piE0      = (TGraph*)  spline_NIWG2012a_nc1piE0     ->Clone("NC1PI_MINE"); //not sure about the name
+		truthevt.spline_NIWG2012a_nccohE0      = (TGraph*)  spline_NIWG2012a_nccohE0     ->Clone("NC_Coh"); 
+		truthevt.spline_NIWG2012a_ncotherE0    = (TGraph*)  spline_NIWG2012a_ncotherE0   ->Clone("NC_other_near");  
+		truthevt.spline_NIWG2012a_nc1pi0E0     = (TGraph*)  spline_NIWG2012a_nc1pi0E0    ->Clone("NC_1gamma");//not sure about the name    
+		if(isOnWater==1&&isSignal==1)
+			_sigonwatersample.push_back(truthevt);
+//		else if(isOnWater==0&&isSignal==1)
+//			_signotwatersample.push_back(truthevt);
+//		else if(isOnWater==1&&isSignal==0)
+//			_notsigonwatersample.push_back(truthevt);
+//		else //isOnWater==0&&isSignal==0
+//			_notsignotwatersample.push_back(truthevt);
+	}
+
+	std::cout<<"total true signals: "<<_sigonwatersample.size()<<std::endl;
+
+}
+
 void MCSimUnit::GetAllSamples()
 {
 	std::cout<<"In GetAllSamples to Read MCSamples"<<std::endl;
@@ -571,7 +635,7 @@ void MCSimUnit::GetAllSamples()
 		MCEvent evt;
 		if(!GetMCEvent(evt, ientry))
 			continue;
-		if(ientry%1000<10)//output first ten in the 1000 events 
+		if(ientry%5000<10)//output first ten in the 1000 events 
 			std::cout<<ientry<<" "<<evt.EventID<<std::endl;
 
 		//some cuts are applied in GetMCEvent. If wanting to apply additional cuts, we can add here or in GetMCEvent
