@@ -553,4 +553,296 @@ double SystematicUncertaintyCorr::CalTwoShowerChargeRatioWithSyst(const MCEvent&
 		return nominalevt.twoshowerEDepfrac;
 }
 
+double SystematicUncertaintyCorr::CalcMuDecayEffCorrectionWeight(const MCEvent& nominalevt, const std::vector<double>& param, const int AllCCEvt, const int CCEvtNoMdk, const int CCEvtMdk) const
+{
+    double weight = 1.0;
+    int index = -1;
+    //Get the number of events to be moved from the param
+    //as a percentage of AllCCEvt
+    
+    if(nominalevt.isWaterConfig==1){
+      index = fitparam.GetParamIndexFromExactName("kSamp_MuDkEff_WaterIn");
+    }
+    else if(nominalevt.isWaterConfig==0){
+      index = fitparam.GetParamIndexFromExactName("kSamp_MuDkEff_WaterOut");
+    }
+	else
+		throw std::runtime_error("Event in neither water-in nor water-out configuration");
 
+    float nevents = param[index]*AllCCEvt;
+    float CCEvtNoMdk_prime = CCEvtNoMdk + nevents;
+    float CCEvtMdk_prime = CCEvtMdk - nevents;
+
+    if(nominalevt.nMuonDecayClusters>0){ //=> there is a muon decay cluster
+      weight =  CCEvtMdk_prime/CCEvtMdk;
+    }
+    else{
+      weight =  CCEvtNoMdk_prime/CCEvtNoMdk;
+    }
+    return weight;
+}
+
+double SystematicUncertaintyCorr::CalcMuDecayFakeRateCorrectionWeight(const MCEvent& nominalevt, const std::vector<double>& param, const int AllNCEvt, const int NCEvtNoMdk, const int NCEvtMdk) const
+{
+    double weight = 1.0;
+    int index = -1;
+    //Get the number of events to be moved from the param
+    //as a percentage of AllNCEvt
+    
+    if(nominalevt.isWaterConfig==1){
+      index = fitparam.GetParamIndexFromExactName("kSamp_FakeMuDkProb_WaterIn");
+    }
+    else if(nominalevt.isWaterConfig==0){
+      index = fitparam.GetParamIndexFromExactName("kSamp_FakeMuDkProb_WaterOut");
+    }
+	else
+		throw std::runtime_error("Event in neither water-in nor water-out configuration");
+
+    float nevents = param[index]*AllNCEvt;
+    float NCEvtNoMdk_prime = NCEvtNoMdk + nevents;
+    float NCEvtMdk_prime = NCEvtMdk - nevents;
+
+    if(nominalevt.nMuonDecayClusters>0){ //=> there is a muon decay cluster
+      weight =  NCEvtMdk_prime/NCEvtMdk;
+    }
+    else{
+      weight =  NCEvtNoMdk_prime/NCEvtNoMdk;
+    }
+    return weight;
+
+}
+
+
+double SystematicUncertaintyCorr::CalcXSecFSISystWeightFromT2KReweight(const TruthEvent& nominalevt, const std::vector<double>& param) const{
+	
+//	if(nominalevt.isSignal==1)//skip signal 
+//		return 1.0;
+
+	double weight = 1.0;
+	int paramindex = -1;
+
+	if(!nominalevt.spline_MaCCQE)
+	{
+		std::cerr<<"spline_MaCCQE of evt "<<nominalevt.EventID<<" is NULL"<<std::endl;
+		exit(0);
+	}
+	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_MaCCQE->GetName());
+	weight*= nominalevt.spline_MaCCQE->Eval(param[paramindex]);
+	if(_debugweight&&nominalevt.spline_MaCCQE->Eval(param[paramindex])<0)
+		std::cout<<"Event"<<nominalevt.EventID<<" "<<"CCQE"<<" weight = "<< weight<<std::endl;
+
+	if(!nominalevt.spline_MaRES)
+	{
+		std::cerr<<"spline_maRES of evt "<<nominalevt.EventID<<" is NULL"<<std::endl;
+		exit(0);
+	}
+	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_MaRES->GetName());
+	weight*= nominalevt.spline_MaRES->Eval(param[paramindex]);
+	if(_debugweight&&nominalevt.spline_MaRES->Eval(param[paramindex])<0)
+		std::cout<<"Event"<<nominalevt.EventID<<" "<<"MaRES"<<" weight = "<<nominalevt.spline_MaRES->Eval(param[paramindex])<<std::endl;
+/*
+ *comment for now 04/03 because graph of CA5 looks a bit strange
+	if(!nominalevt.spline_CA5) 	                   
+	{
+		std::cerr<<"spline_CA5 of evt "<<nominalevt.EventID<<" is NULL"<<std::endl;
+		exit(0);
+	}
+	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_CA5->GetName());
+	weight*= nominalevt.spline_CA5->Eval(param[paramindex]);
+	if(_debugweight&&nominalevt.spline_CA5->Eval(param[paramindex])<0)
+		std::cout<<"Event"<<nominalevt.EventID<<" "<<"CA5"<<" weight = "<< nominalevt.spline_CA5->Eval(param[paramindex])<<" "<<param[paramindex]<<std::endl;
+*/
+	if(!nominalevt.spline_ISO_BKG)                 
+	{
+		std::cerr<<"spline_ISO_BKG of evt "<<nominalevt.EventID<<" is NULL"<<std::endl;
+		exit(0);
+	}
+	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_ISO_BKG->GetName());
+	weight*= nominalevt.spline_ISO_BKG->Eval(param[paramindex]);
+	if(_debugweight&&nominalevt.spline_ISO_BKG->Eval(param[paramindex])<0)
+		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_ISO_BKG-"<<" weight = "<< weight<<std::endl;
+
+	if(!nominalevt.spline_FSI_PI_ABS)              
+	{
+		std::cerr<<"spline_FSI_PI_ABS of evt "<<nominalevt.EventID<<" is NULL"<<std::endl;
+		exit(0);
+	}
+	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_FSI_PI_ABS->GetName());
+	weight*= nominalevt.spline_FSI_PI_ABS->Eval(param[paramindex]);
+	if(_debugweight&&nominalevt.spline_FSI_PI_ABS->Eval(param[paramindex])<0)
+		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_FSI_PI_ABS"<<" weight = "<< weight<<std::endl;
+
+	if(!nominalevt.spline_FSI_CEX_LO)              
+	{
+		std::cerr<<"spline_FSI_CEX_LO of evt "<<nominalevt.EventID<<" is NULL"<<std::endl;
+		exit(0);
+	}
+	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_FSI_CEX_LO->GetName());
+	weight*= nominalevt.spline_FSI_CEX_LO->Eval(param[paramindex]);
+	if(_debugweight&&nominalevt.spline_FSI_CEX_LO->Eval(param[paramindex])<0)
+		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_FSI_CEX_LO"<<" weight = "<< weight<<std::endl;
+
+	if(!nominalevt.spline_FSI_INEL_LO)             
+	{
+		std::cerr<<"spline_FSI_INEL_LO of evt "<<nominalevt.EventID<<" is NULL"<<std::endl;
+		exit(0);
+	}
+	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_FSI_INEL_LO->GetName());
+	weight*= nominalevt.spline_FSI_INEL_LO->Eval(param[paramindex]);
+	if(_debugweight&&nominalevt.spline_FSI_INEL_LO->Eval(param[paramindex])<0)
+		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_FSI_INEL_LO"<<" weight = "<< weight<<std::endl;
+//	if(!nominalevt.spline_FSI_CEX_HI)              
+//	{
+//		std::cerr<<"spline_FSI_CEX_HI of evt "<<nominalevt.EventID<<" is NULL"<<std::endl;
+//		exit(0);
+//	}
+//	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_FSI_CEX_HI->GetName());
+//	weight*= nominalevt.spline_FSI_CEX_HI->Eval(param[paramindex]);
+	if(!nominalevt.spline_FSI_INEL_HI)             
+	{
+		std::cerr<<"spline_FSI_INEL_HI of evt "<<nominalevt.EventID<<" is NULL"<<std::endl;
+		exit(0);
+	}
+	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_FSI_INEL_HI->GetName());
+	weight*= nominalevt.spline_FSI_INEL_HI->Eval(param[paramindex]);
+	if(_debugweight&&nominalevt.spline_FSI_INEL_HI->Eval(param[paramindex])<0)
+		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_FSI_INEL_HI"<<" weight = "<< weight<<std::endl;
+
+	if(!nominalevt.spline_FSI_PI_PROD)              
+	{
+		std::cerr<<"spline_FSI_PI_PROD of evt "<<nominalevt.EventID<<" is NULL"<<std::endl;
+		exit(0);
+	}
+	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_FSI_PI_PROD->GetName());
+	weight*= nominalevt.spline_FSI_PI_PROD->Eval(param[paramindex]);
+	if(_debugweight && nominalevt.spline_FSI_PI_PROD->Eval(param[paramindex])<0)
+	{
+//		if(nominalevt.EventID==1804522)
+//		{
+//			TCanvas* c1 = new TCanvas("c1", "c1");
+//			c1->cd();
+//			nominalevt.spline_FSI_PI_PROD->Draw();
+//			std::string name = std::to_string(nominalevt.EventID)+nominalevt.spline_FSI_PI_PROD->GetName()+".pdf";
+//			c1->SaveAs(name.c_str());
+			std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_FSI_PI_PROD"<<" weight = "<< weight<<" "<<param[paramindex]<<std::endl;
+//		}
+	}
+
+	if(!nominalevt.spline_NIWG_DIS_BY)             
+	{
+		std::cerr<<"spline_NIWG_DIS_BY of evt "<<nominalevt.EventID<<" is NULL"<<std::endl;
+		exit(0);
+	}
+	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_NIWG_DIS_BY->GetName());
+	weight*= nominalevt.spline_NIWG_DIS_BY->Eval(param[paramindex]);
+	if(_debugweight&&nominalevt.spline_NIWG_DIS_BY->Eval(param[paramindex])<0)
+		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_NIWG_DIS_BY-"<<" weight = "<< weight<<std::endl;
+
+	if(!nominalevt.spline_NIWG_MultiPi_BY)         
+	{
+		std::cerr<<"spline_NIWG_MultiPi_BY of evt "<<nominalevt.EventID<<" is NULL"<<std::endl;
+		exit(0);
+	}
+	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_NIWG_MultiPi_BY->GetName());
+	weight*= nominalevt.spline_NIWG_MultiPi_BY->Eval(param[paramindex]);
+	if(_debugweight&&nominalevt.spline_NIWG_MultiPi_BY->Eval(param[paramindex])<0)
+		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_NIWG_MultiPi_BY"<<" weight = "<< weight<<std::endl;
+
+	if(!nominalevt.spline_NIWG_MultiPi_Xsec_AGKY)  
+	{
+		std::cerr<<"spline_NIWG_MultiPi_Xsec_AGKY of evt "<<nominalevt.EventID<<" is NULL"<<std::endl;
+		exit(0);
+	}
+	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_NIWG_MultiPi_Xsec_AGKY->GetName());
+	weight*= nominalevt.spline_NIWG_MultiPi_Xsec_AGKY->Eval(param[paramindex]);
+	if(_debugweight&&nominalevt.spline_NIWG_MultiPi_Xsec_AGKY->Eval(param[paramindex])<0)
+		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_NIWG_MultiPi_Xsec_AGKY"<<" weight = "<< weight<<std::endl;
+//	if(!nominalevt.spline_NIWG2012a_nc1piE0)       
+//	{
+//		std::cerr<<"spline_NIWG2012a_nc1piE0 of evt "<<nominalevt.EventID<<" is NULL"<<std::endl;
+//		exit(0);
+//	}
+//	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_NIWG2012a_nc1piE0->GetName());
+//	weight*= nominalevt.spline_NIWG2012a_nc1piE0->Eval(param[paramindex]);
+	if(!nominalevt.spline_NIWG2012a_nccohE0)       
+	{
+		std::cerr<<"spline_NIWG2012a_nccohE0 of evt "<<nominalevt.EventID<<" is NULL"<<std::endl;
+		exit(0);
+	}
+	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_NIWG2012a_nccohE0->GetName());
+	weight*= nominalevt.spline_NIWG2012a_nccohE0->Eval(param[paramindex]);
+	if(_debugweight&&nominalevt.spline_NIWG2012a_nccohE0->Eval(param[paramindex])<0)
+		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_NIWG2012a_nccohE0"<<" weight = "<< weight<<std::endl;
+
+	if(!nominalevt.spline_NIWG2012a_ncotherE0)     
+	{
+		std::cerr<<"spline_NIWG2012a_ncotherE0 of evt "<<nominalevt.EventID<<" is NULL"<<std::endl;
+		exit(0);
+	}
+	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_NIWG2012a_ncotherE0->GetName());
+	weight*= nominalevt.spline_NIWG2012a_ncotherE0->Eval(param[paramindex]);
+	if(_debugweight&&nominalevt.spline_NIWG2012a_ncotherE0->Eval(param[paramindex])<0)
+		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_NIWG2012a_ncotherE0"<<" weight = "<< weight<<std::endl;
+	if(!nominalevt.spline_NIWG2012a_nc1pi0E0)      
+	{
+		std::cerr<<"spline_NIWG2012a_nc1pi0E0 of evt "<<nominalevt.EventID<<" is NULL"<<std::endl;
+		exit(0);
+	}
+	paramindex = fitparam.GetParamIndexFromExactName(nominalevt.spline_NIWG2012a_nc1pi0E0->GetName());
+	weight*= nominalevt.spline_NIWG2012a_nc1pi0E0->Eval(param[paramindex]);
+	if(_debugweight&&nominalevt.spline_NIWG2012a_nc1pi0E0->Eval(param[paramindex])<0)
+		std::cout<<"Event"<<nominalevt.EventID<<" "<<"nominalevt.spline_NIWG2012a_nc1pi0E0"<<" weight = "<< weight<<std::endl;
+
+
+
+
+	// add all xsec and fsi param used in t2k-reweight for this analysis
+
+	return weight;
+}
+
+
+double SystematicUncertaintyCorr::CalcFluxSystWeight(const TruthEvent& nominalevt, const std::vector<double>& param) const{
+
+	double weight = 1.0;
+
+//	int bin = fitparam.GetNeutrinoEnergyBinIndex(nominalevt.numode, nominalevt.NeutrinoPDG, nominalevt.TrueNeutrinoEnergy);
+	std::string paramname = "nd5_";
+	if(nominalevt.numode==1)//FHC
+		paramname+="numode_";	
+	else if(nominalevt.numode==0)//RHC
+		paramname+="anumode_";
+	else{ //something is wrong
+		std::cerr<<"In CalcFluxSystWeight, this event is in neither FHC nor RHC. Something is wrong"<<std::endl;
+		exit(0);
+	}
+	if(nominalevt.NeutrinoPDG==14)
+		paramname+="numu_";
+	else if(nominalevt.NeutrinoPDG==-14)
+		paramname+="numub_";
+	else if(nominalevt.NeutrinoPDG==12)
+		paramname+="nue_";
+	else if(nominalevt.NeutrinoPDG==-12)
+		paramname+="nueb_";
+	else{
+//		std::cerr<<"In CalcFluxSystWeight, this neutrino is not numu, numub, nue or nueb: "<<nominalevt.NeutrinoPDG<<". The EventID is "<<nominalevt.EventID<<" ReconShowerEnergy = "<<nominalevt.ReconShowerEnergy<<std::endl;
+		return 1;//this line is added on 03/16/2021
+	}
+	//gcc4.8 doesn't have std::to_string. to make sure this program can be compile in both gcc4.8 and gcc6, use stringstream below
+	std::stringstream sstmp;
+	int bin = fitparam.GetNeutrinoEnergyBinIndex(nominalevt.numode, nominalevt.NeutrinoPDG, nominalevt.TrueNeutrinoEnergy/1000.0); //convert to the unit of GeV
+	sstmp << bin;
+	paramname+=("bin"+sstmp.str());
+
+//	std::cout<<"In Flux: Event"<<nominalevt.EventID<<" "<<bin<<" TrueNeutrinoEnergy = "<<nominalevt.TrueNeutrinoEnergy<<std::endl;
+	int idx = fitparam.GetParamIndexFromExactName(paramname);
+	if(idx==-1) //overflow or underflow, so doesn;t count for now...
+	{
+		std::cout<<"Event "<<nominalevt.EventID<<" paramname = "<<paramname<<" idx = -1"<<std::endl;
+		return 0;
+	}
+	weight*=param[idx];
+	if(_debugweight&&weight<0)
+		std::cout<<"Event"<<nominalevt.EventID<<" "<<paramname<<" weight = "<< weight<<std::endl;
+	return weight;
+}

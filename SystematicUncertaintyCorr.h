@@ -24,11 +24,14 @@ public:
 	double CalPIDSystWeight(const MCEvent& nominalevt, const std::vector<double>& param) const;
 	double CalOOFVPi0WeightSyst(const MCEvent& nominalevt, const std::vector<double>& param) const;
 	double CalcMassSystWeight(const MCEvent& nominalevt, const std::vector<double>& param) const;
+	//write as template later
 	double CalcXSecFSISystWeightFromT2KReweight(const MCEvent& nominalevt, const std::vector<double>& param) const;
-
-	double CalcXSecNormSystWeight(const MCEvent& nominalevt, const std::vector<double>& param) const;//calculate weight from xsec param which are not through t2k-reweight
+	double CalcXSecFSISystWeightFromT2KReweight(const TruthEvent& nominalevt, const std::vector<double>& param) const;
 
 	double CalcFluxSystWeight(const MCEvent& nominalevt, const std::vector<double>& param) const;
+	double CalcFluxSystWeight(const TruthEvent& nominalevt, const std::vector<double>& param) const;
+	////
+	double CalcXSecNormSystWeight(const MCEvent& nominalevt, const std::vector<double>& param) const;//calculate weight from xsec param which are not through t2k-reweight
 
 	double CalcSignalEventWeight(const MCEvent& nominalevt, const std::vector<double>& param) const;
 /*
@@ -42,11 +45,12 @@ public:
 	//NC1pi0 CS alone
 	double CalInvariantMassWithSyst(const MCEvent& nominalevt, const std::vector<double>& param) const;
 	double CalTwoShowerChargeRatioWithSyst(const MCEvent& nominalevt, const std::vector<double>& param) const;
-	double CalcMuDecayEffCorrectionWeight(const MCEvent& nominalevt, const std::vector<double>& param) const;
-	double CalcMuDecayFakeRateCorrectionWeight(const MCEvent& nominalevt, const std::vector<double>& param) const;
+	double CalcMuDecayEffCorrectionWeight(const MCEvent& nominalevt, const std::vector<double>& param, const int AllCCEvt, const int CCEvtNoMdk, const int CCEvtMdk) const;
+	double CalcMuDecayFakeRateCorrectionWeight(const MCEvent& nominalevt, const std::vector<double>& param, const int AllNCEvt, const int NCEvtNoMdk, const int NCEvtMdk) const;
+
+	FitParams fitparam;
 
 private:
-	FitParams fitparam;
 	Binning binobj;
 	bool _debug;
 	bool _debugweight;
