@@ -13,9 +13,9 @@ const double FitParams::EM_SCALE_TRACK_WTWATEROUT = 0.1340;
 
 FitParams::FitParams() {
 	sigwt_params = true;
-	xsec_params = true;
+	xsec_params = true;//false;//true;
 	flux_params = true;
-	det_params = true;//false;//true;
+	det_params = true;
 	samplecon_params = false;//true;//for now
 	det_params_nc1pi0 = true;
 
@@ -73,7 +73,11 @@ void FitParams::FillFitParams(){
 		exit(0);
 	}
 	for(int i=0; i<(int)ParamNames.size(); i++)
+	{
+		if(ParamNames[i]=="kDet_PhotonEnergyScaleECal_SLOPE")
+			std::cout<<"kDet_PhotonEnergyScaleECal_SLOPE EXIST"<<std::endl;
 		ParamNamesMap.insert({ParamNames[i], i});
+	}
 }
 
 void FitParams::FillFitParams(Int_t param_type){
@@ -81,27 +85,27 @@ void FitParams::FillFitParams(Int_t param_type){
 	TTree *inT;
 
 	if (param_type == kSigWt){
-		inFile = new TFile("Inputs/sigwtparam_input.root", "open");
+		inFile = new TFile("/gpfs/home/yuewang6/ND280Software/p0dNuEAnalysisFitter_5/Inputs/sigwtparam_input.root", "open");
 		if(!inFile) std::cerr << "Cannot find sig wt params file in Inputs/" << std::endl;
 		inT = (TTree*)inFile->Get("sigWtParams");
 	}
 	else if (param_type == kXsec) {
-		inFile = new TFile("Inputs/Xsecparam_input.root", "open");
+		inFile = new TFile("/gpfs/home/yuewang6/ND280Software/p0dNuEAnalysisFitter_5/Inputs/Xsecparam_input.root", "open");
 		if(!inFile) std::cerr << "Cannot find params file in Inputs/" << std::endl;
 		inT = (TTree*)inFile->Get("XsecParams");
 	}
 	else if (param_type == kFlux) {
-		inFile = new TFile("Inputs/Fluxparam_input.root", "open");
+		inFile = new TFile("/gpfs/home/yuewang6/ND280Software/p0dNuEAnalysisFitter_5/Inputs/Fluxparam_input.root", "open");
 		if(!inFile) std::cerr << "Cannot find params file in Inputs/" << std::endl;
 		inT = (TTree*)inFile->Get("FluxParams");
 	}
 	else if (param_type == kDet){
-		inFile = new TFile("Inputs/detparam_input.root", "open");
+		inFile = new TFile("/gpfs/home/yuewang6/ND280Software/p0dNuEAnalysisFitter_5/Inputs/detparam_input.root", "open");
 		if(!inFile) std::cerr << "Cannot find detector params file in Inputs/" << std::endl;
 		inT = (TTree*)inFile->Get("detParams");
 	}
 	else if (param_type == kSampleCon){
-		inFile = new TFile("Inputs/sampleconparam_input.root", "open");
+		inFile = new TFile("/gpfs/home/yuewang6/ND280Software/p0dNuEAnalysisFitter_5/Inputs/sampleconparam_input.root", "open");
 		if(!inFile) std::cerr << "Cannot find sample constraint params file in Inputs/" << std::endl;
 		inT = (TTree*)inFile->Get("sampleConParams");
 	}
